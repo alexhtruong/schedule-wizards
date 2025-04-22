@@ -1,68 +1,86 @@
 # Example User Flows
 
-## 1. Submitting a Course Review Flow
+## 1. The Transfer Student's Course Planning Journey
 
-Sarah just finished her CSC101 course with Professor Andrew Smith and wants to share her experience with other students. She decides to submit a review on Reveel to help future students make informed decisions.
+Maya is a transfer student who needs to efficiently plan her upcoming quarters. She wants to maximize her chances of success while managing her workload carefully across multiple engineering courses.
 
-First, Sarah searches for her class by calling GET `/search/class/CSC101` to see if it exists in the system. The search shows that while CSC101 exists, Professor Smith hasn't been added to the system yet.
+First, Maya calls GET `/search/class/?area=B2&sort_col=workload&sort_order=asc` to find all engineering foundation courses, sorted by workload. She identifies three crucial courses: ME211, ME212, and CE201.
 
-Since Professor Smith isn't in the system, Sarah helps out by:
+For each course, Maya:
 
-1. Calling POST `/professors` with Professor Smith's information
-2. This creates a new professor entry with ID "xyz456"
+1. Calls GET `/courses/{id}/aggregates` to understand the overall picture:
 
-Now that both the course and professor exist, Sarah submits her review by calling POST `/reviews` with:
+   - ME211: 3.8/5 rating, 15hrs/week average workload
+   - ME212: 4.1/5 rating, 12hrs/week average workload
+   - CE201: 3.2/5 rating, 18hrs/week average workload
 
-- A difficulty rating of 3/5
-- An overall rating of 4/5
-- Estimated workload of 5 hours per week
-- Tags: ["Engaging", "Tough exams"]
-- A detailed comment about the great teaching but tough grading
+2. Uses GET `/search/class/{course_id}` for each course to find professors teaching next quarter:
 
-Sarah's review is now available to help future students make informed decisions about taking CSC101 with Professor Smith.
+   - ME211: Prof. Hall and Prof. Johnson
+   - ME212: Prof. Williams
+   - CE201: Prof. Chen and Prof. Rodriguez
 
-## 2. Finding the Best Professor for Engineering Dynamics Flow
+3. Calls GET `/professors/{id}` for each professor to deep dive into their teaching styles and student experiences
 
-Mike needs to take ME212 (Engineering Dynamics) next quarter and wants to choose the best professor for his learning style. He uses Reveel to research his options.
+After thorough research, Maya discovers that Prof. Hall (ME211) and Prof. Williams (ME212) have complementary teaching styles that would work well together. She also notices some concerning reviews about Prof. Chen's CE201 class.
 
-First, Mike calls GET `/search/class/ME212` to see all professors who have taught the course. The search returns two professors:
+Being a diligent student, Maya:
 
-- Sally Cartman
-- Ashton Hall
+1. Submits a new review for a previous professor via POST `/reviews` with detailed feedback about their teaching style
+2. Reports an inappropriate review using POST `/reviews/:id/report` that contained personal attacks against Prof. Chen
+3. Helps improve the system by adding a missing professor using POST `/professors` for a new Engineering faculty member
 
-To learn more about Professor Hall, Mike calls GET `/professors/ahall68` and discovers:
+## 2. The Department Chair's Curriculum Review
 
-- Professor Hall has taught both ME211 and ME212
-- Their average difficulty rating is 7/10
-- Students typically spend about 9 hours per week on coursework
-- Common tags include "Engaging", "Helpful", and "Tough exams"
-- Recent reviews mention interesting lectures but challenging exams
+Dr. Thompson, the Engineering department chair, needs to evaluate course effectiveness and teaching quality across the department. She uses Reveel to gather comprehensive data for the annual department review.
 
-Mike reads through the detailed reviews and notices that Professor Hall has a good balance of hands-on projects and theoretical content, which matches his learning style. Based on this research, Mike decides to register for ME212 with Professor Hall next quarter.
+Her investigation flow:
 
-## 3. Discovering Hidden Gem GE Courses Flow
+1. First, she calls GET `/search/class/?department=ME` to list all Mechanical Engineering courses.
 
-Jessica needs to fulfill her C1 GE requirement and wants to find an interesting course that won't overload her schedule. She uses Reveel to explore her options strategically.
+2. For each core course, she calls GET `/courses/{id}/aggregates` to analyze:
 
-First, Jessica calls GET `/search/class/?area=C1&sort_col=rating&sort_order=desc` to see all C1 courses ranked by student ratings. This gives her a sorted list of courses including CSC101, ME212, and CE212 with their overall ratings.
+   - Overall course performance
+   - Difficulty trends
+   - Workload distribution
+   - Common student feedback themes
 
-Interested in CSC101's high rating, Jessica:
+3. She notices unusually high difficulty ratings in ME304 and investigates deeper:
 
-1. Calls GET `/courses/CSC101/aggregates` to get deeper insights:
+   - Calls GET `/search/class/ME304` to see all professors who taught it
+   - Uses GET `/professors/{id}` for each professor to analyze individual teaching effectiveness
+   - Discovers a significant disparity in student success rates between professors
 
-   - Average rating: 4.6/5
-   - Average difficulty: 2.3/5
-   - Average workload: 5.2 hours/week
-   - Popular tags suggest interesting readings and approachable professors
+4. Dr. Thompson identifies areas for improvement:
+   - Adds new professors to the system via POST `/professors` for recent hires
+   - Submits detailed course context via POST `/courses` for a new experimental course
+   - Reviews and reports outdated information using POST `/reviews/:id/report`
 
-2. Calls GET `/search/class/CSC101` to see who teaches it
+## 3. Student Course Guide Project
 
-3. Looking at Professor Alan Turing's stellar reviews (GET `/professor/aturing123`), she finds:
-   - Consistently positive feedback
-   - Engaging teaching style
-   - Reasonable workload of 8-10 hours/week
-   - Clear explanations of complex topics
+Some anonymous person decides to create a guide for new students. They uses Reveel's API to gather and verify information across multiple courses and professors.
 
-However, Jessica notices a concerning review with inappropriate language. Being a responsible user, she reports it by calling POST `/reviews/rev001/report` with details about the inappropriate content.
+The research process:
 
-Based on her research, Jessica decides to take CSC101 with Professor Turing, confident that she's found a high-quality GE course that won't overwhelm her schedule.
+1. They start broad with GET `/search/class/?sort_col=rating&sort_order=desc` to identify the most highly-rated courses.
+
+2. For each department's core courses:
+
+   - Call GET `/courses/{id}/aggregates` to gather statistical data
+   - Use GET `/search/class/{course_id}` to find all professors
+   - Analyze GET `/professors/{id}` for each professor's teaching history
+
+3. They enhance the database quality by:
+
+   - Adding missing course information via POST `/courses`
+   - Creating entries for new professors via POST `/professors`
+   - Contributing detailed reviews through POST `/reviews`
+   - Reporting outdated or incorrect information using POST `/reviews/:id/report`
+
+4. For the popular "ME212 - Engineering Dynamics" course, they conduct a deep dive:
+   - Analyze professor ratings across multiple quarters
+   - Compare workload estimates between different teaching styles
+   - Identify the most successful student preparation strategies based on review comments
+   - Document which professor combinations for ME211/ME212 sequence lead to better student outcomes
+
+This approach helps them create a valuable resource that combines quantitative data with insights, helping future students make informed decisions about their academics.
