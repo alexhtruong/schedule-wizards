@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: schedule-wizards
+    name: central-coast-cauldrons
     runtime: python
     plan: free
     autoDeploy: true
