@@ -18,7 +18,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# get, delete, post, are after app.
 
 @app.get("/")
 async def root():
     return {"message": "wizard api is up"}
+
+
+@app.post("/courses")
+def post_course(course_code, name, department, description):
+    # insert into databse
+    # use user inputs
+
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO ()
+                VALUES (
+                :course_code, :name, :department, :description
+                )
+                """
+                ),
+            {
+                "course_code": course_code,
+                "name": name,
+                "department": department,
+                "description": description,
+            },
+        )
+    
+    #not returning description
+    return {
+        "course_code": course_code,
+        "name": name,
+        "department": department
+        }
+

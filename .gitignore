@@ -5,3 +5,4 @@ __pycache__
 /.env
 info.log
 .DS_Store
+.vs
