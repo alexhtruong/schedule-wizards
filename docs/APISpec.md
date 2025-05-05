@@ -1,4 +1,4 @@
-# Reveel API Specification
+# Schedule Wizards API Specification
 
 ## Endpoints
 
