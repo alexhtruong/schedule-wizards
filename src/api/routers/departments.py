@@ -24,7 +24,6 @@ class Department(BaseModel):
     school_id: int
 
 class DepartmentCreate(BaseModel):
-    department_id: int
     name: str
     abbrev: str
     school_id: int
@@ -34,12 +33,12 @@ class DepartmentCreate(BaseModel):
 async def create_department(department: DepartmentCreate):
     """Create a new department."""
     with db.engine.begin() as connection:
-        department = connection.execute(
+        existing_department = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT 1
-                FROM departments
-                WHERE departments.name = :name AND departments.school_id = :school_id
+                FROM department
+                WHERE department.name = :name AND department.school_id = :school_id
                 """
             ),
             {
@@ -48,16 +47,16 @@ async def create_department(department: DepartmentCreate):
             }
         ).first()
 
-        if department is not None:
+        if existing_department is not None:
             raise HTTPException(
                 status_code=400,
                 detail="department already exists!"
             )
 
-        connection.execute(
+        department_id = connection.execute(
             sqlalchemy.text(
                 """
-                INSERT INTO departments
+                INSERT INTO department
                 (name,
                 abbrev,
                 school_id)
@@ -72,3 +71,4 @@ async def create_department(department: DepartmentCreate):
                 "school_id": department.school_id
             }
             )
+        return {"id": str(department_id), "message": "Department created successfully"}
