@@ -28,6 +28,23 @@ class Professor(BaseModel):
     department: str
     num_reviews: int
 
+class Course(BaseModel):
+    course_id: int
+    name: str
+    department: str
+    professors: List[Professor]
+
+class Review(BaseModel):
+    review_id: str
+    course: Course
+    term: str
+    difficulty_rating: int
+    overall_rating: int
+    workload_estimate: int
+    tags: List[str]
+    comments: str
+    user_id: str
+
 class ProfessorDetails(BaseModel):
     professor: Professor
     reviews: List[Review]

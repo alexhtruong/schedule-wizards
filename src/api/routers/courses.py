@@ -7,8 +7,10 @@ from src import database as db
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 class Professor(BaseModel):
+    id: str
     name: str
-    professor_id: int
+    department: str
+    num_reviews: int
 
 class Course(BaseModel):
     course_id: int
