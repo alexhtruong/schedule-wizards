@@ -14,7 +14,6 @@ Search for classes and list professors/reviews.
 - `term` (optional): Academic term (e.g. "Fall 2024")
 - `minDifficulty`/`maxDifficulty` (optional): Scale 1-5
 - `minWorkload`/`maxWorkload` (optional): Hours per week
-- `area` (optional): GE Area (e.g. `C1`, `B2`)
 - `sort_col` (optional): Sort by `rating`, `workload`, etc.
 - `sort_order` (optional): `asc` or `desc` (default)
 
@@ -22,7 +21,6 @@ Search for classes and list professors/reviews.
 
 - Searching classes
 - Listing professors who taught a course
-- Filtering courses by GE area
 
 **Response**:
 

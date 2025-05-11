@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-
+from src.api.routers import courses, professors, reviews
 
 app = FastAPI(
     title="Schedule Wizards",
@@ -18,7 +18,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include our routers
+app.include_router(courses.router)
+app.include_router(professors.router)
+app.include_router(reviews.router)
 
 @app.get("/")
 async def root():
     return {"message": "wizard api is up"}
+

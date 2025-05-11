@@ -1,9 +1,12 @@
+
 # CSC 365 Proposal
 ### With Alex Truong, Aaron Krimer, Kyle Lin, and Colin Hassett
 We’re building a Class Review API to give Cal Poly students a structured, insightful platform for sharing feedback on courses and professors. Unlike typical review systems, this API captures quantitative and qualitative data such as difficulty level, estimated weekly workload, usefulness of the course material, project vs. exam focus, and collaboration requirements. Students will be able to tag courses with descriptors like “heavy reading,” “great for internships,” or “group projects,” making reviews easier to search and filter.
 
 The relational database will store relationships between users, courses, professors, and structured review fields, enabling aggregated insights like average difficulty or workload by course and professor over time. Reviews can be tied to specific academic terms, supporting time-based analysis (e.g., how a course changes from one instructor to another). The system will include full CRUD operations for reviews, users, professors, and course metadata.
+###
 
+### Database ER Diagram: https://lucid.app/lucidchart/9f414bfc-15ce-475f-acac-38fbecc21834/edit?invitationId=inv_a562e2ce-681e-447b-91fb-fd9ec0f97fb9&page=0_0#
 
 ## Local Development & Testing
 

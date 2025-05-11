@@ -1,0 +1,168 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional
+import sqlalchemy
+from src import database as db
+
+router = APIRouter(prefix="/reviews", tags=["reviews"])
+
+class ReviewCreate(BaseModel):
+    course_id: str
+    professor_id: str
+    professor_name: str
+    user_id: str
+    term: str 
+    difficulty_rating: int = Field(ge=1, le=5)
+    overall_rating: int = Field(ge=1, le=5)
+    workload_estimate: int = Field(ge=0, le=168)  # max hours per week
+    tags: List[str]  
+    comments: str = Field(min_length=10)
+
+    @field_validator('comments')
+    def validate_comments(cls, v):
+        if len(v.split()) < 5: 
+            raise ValueError('Comments must be at least 5 words')
+        return v
+
+class ReportCreate(BaseModel):
+    reason: str = Field(min_length=10)
+    details: str = Field(min_length=20)
+
+@router.post("/")
+async def create_review(review: ReviewCreate):
+    """Create a new review."""
+    with db.engine.begin() as connection:
+        # check if course and professor are linked
+        course_and_prof = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT c.id, p.id
+                FROM course c
+                JOIN professors_courses pc ON c.id = pc.course_id
+                JOIN professor p ON p.id = pc.professor_id
+                WHERE c.id = :course_id AND p.id = :prof_id
+                """
+            ),
+            {
+                "course_id": review.course_id, 
+                "prof_id": review.professor_id
+            }
+        ).first()
+
+        if not course_and_prof:
+            raise HTTPException(
+                status_code=400,
+                detail="Professor is not assigned to this course"
+            )
+            
+        # check for duplicate review
+        dup_review = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT 1 
+                FROM review 
+                WHERE course_id = :course_id 
+                AND student_id = :student_id
+                """
+            ),
+            {
+                "course_id": review.course_id,
+                "student_id": review.user_id
+            }
+        ).first()
+        if dup_review:
+            raise HTTPException(
+                status_code=400,
+                detail="You have already reviewed this course"
+            )
+            
+        try:
+            review_id = connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO review 
+                    (course_id, term, difficulty, overall_rating, 
+                    workload_rating, comments, student_id)
+                    VALUES 
+                    (:course_id, :term, :difficulty, :rating, 
+                    :workload, :comments, :student_id)
+                    RETURNING id
+                    """    
+                ), {
+                'course_id': review.course_id,
+                'term': review.term,
+                'difficulty': review.difficulty_rating,
+                'rating': review.overall_rating,
+                'workload': review.workload_estimate,
+                'comments': review.comments,
+                'student_id': review.user_id
+            }).scalar_one()
+            
+            for tag in review.tags:
+                # get or create tag
+                tag_id = connection.execute(
+                    sqlalchemy.text(
+                        """
+                        INSERT INTO tag 
+                        (name)
+                        VALUES (:name)
+                        ON CONFLICT (name) DO UPDATE
+                        SET name = EXCLUDED.name
+                        RETURNING id
+                        """    
+                    ), {'name': tag}
+                ).scalar()
+                
+                # link tag to review
+                connection.execute(
+                    sqlalchemy.text(
+                        """
+                        INSERT INTO review_tags (review_id, tag_id)
+                        VALUES (:review_id, :tag_id)
+                        """
+                    ),
+                    {'review_id': review_id, 'tag_id': tag_id}
+                )
+            return {"id": str(review_id), "message": "Review created successfully"}
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail="Error creating review"
+            ) from e
+
+# @router.post("/{review_id}/report")
+# async def report_review(review_id: str, report: ReportCreate):
+#     """Report an inappropriate review."""
+#     # validate review exists
+#     with db.engine.begin() as connection:
+#         exists = connection.execute(
+#             sqlalchemy.text(
+#                 'SELECT 1 FROM review WHERE id = :id'
+#             ),
+#             {'id': review_id}
+#         ).first()
+        
+#         if not exists:
+#             raise HTTPException(
+#                 status_code=404, 
+#                 detail="Review not found"
+#             )
+            
+#         connection.execute(
+#             sqlalchemy.text(
+#                 """
+#                 INSERT INTO review_report
+#                 (review_id, reason, details)
+#                 VALUES (:review_id, :reason, :details)
+#                 """
+#             ),
+#             {
+#                 'review_id': review_id,
+#                 'reason': report.reason,
+#                 'details': report.details
+#             }
+#         )
+        
+#         return {
+#             "message": "Review has been reported and will be reviewed by moderators."
+#         }
