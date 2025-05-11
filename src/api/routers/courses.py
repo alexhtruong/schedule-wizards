@@ -3,15 +3,11 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import sqlalchemy
 from src import database as db
-from professors import Professor
+from src.api.routers.models import Professor, Course
+
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
-class Course(BaseModel):
-    course_id: int
-    name: str
-    department: str
-    professors: List[Professor]
 
 class CourseAggregates(BaseModel):
     average_rating: float

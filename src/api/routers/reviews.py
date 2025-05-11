@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 import sqlalchemy
-from courses import Course
+from src.api.routers.models import Course
 from src import database as db
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
