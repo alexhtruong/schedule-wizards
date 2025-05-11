@@ -3,12 +3,9 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import sqlalchemy
 from src import database as db
+from professors import Professor
 
 router = APIRouter(prefix="/courses", tags=["courses"])
-
-class Professor(BaseModel):
-    name: str
-    professor_id: int
 
 class Course(BaseModel):
     course_id: int

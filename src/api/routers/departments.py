@@ -1,21 +1,11 @@
-from unittest.util import strclass
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import sqlalchemy
+from professors import Professor, Course
 from src import database as db
 
 router = APIRouter(prefix="/departments", tags=["departments"])
-
-class Professor(BaseModel):
-    name: str
-    professor_id: int
-
-class Course(BaseModel):
-    course_id: int
-    name: str
-    department: str
-    professors: List[Professor]
 
 class Department(BaseModel):
     department_id: int
@@ -64,11 +54,11 @@ async def create_department(department: DepartmentCreate):
                 (:name, :abbrev, :school_id)
                 RETURNING id
                 """
-                ),
+            ),
             {
                 "name": department.name,
                 "abbrev": department.abbrev,
                 "school_id": department.school_id
             }
-            )
+        )
         return {"id": str(department_id), "message": "Department created successfully"}
