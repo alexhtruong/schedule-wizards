@@ -24,7 +24,7 @@ class Review(BaseModel):
     workload_estimate: int
     tags: List[str]
     comments: str
-    user_id: str
+    user_id: int
 
 class ProfessorDetails(BaseModel):
     professor: Professor

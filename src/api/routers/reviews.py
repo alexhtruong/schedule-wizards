@@ -28,12 +28,12 @@ class Review(BaseModel):
     workload_estimate: int
     tags: List[str]
     comments: str
-    user_id: str
+    user_id: int
 
 class ReviewCreate(BaseModel):
     course_id: int
     professor_id: int
-    user_id: str
+    user_id: int
     term: str 
     difficulty_rating: int = Field(ge=1, le=5)
     overall_rating: int = Field(ge=1, le=5)
