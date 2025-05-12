@@ -69,5 +69,5 @@ async def create_school(school: SchoolCreate):
             }
         )
         school_id = result.scalar_one()
-        return {"id": school_id, "message": "School created successfully"}
+        return {"id": str(school_id), "message": "School created successfully"}
 
