@@ -48,7 +48,7 @@ async def create_school(school: SchoolCreate):
                 detail="school already exists!"
             )
 
-        school_id = connection.execute(
+        result = connection.execute(
             sqlalchemy.text(
                 """
                 INSERT INTO school
@@ -68,6 +68,6 @@ async def create_school(school: SchoolCreate):
                 "country": school.country
             }
         )
-        school_id = school_id.scalar_one()
+        school_id = result.scalar_one()
         return {"id": school_id, "message": "School created successfully"}
 
