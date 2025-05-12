@@ -7,6 +7,18 @@ from src import database as db
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
+class Professor(BaseModel):
+    id: str
+    name: str
+    department: str
+    num_reviews: int
+
+class Course(BaseModel):
+    course_id: int
+    name: str
+    department: str
+    professors: List[Professor]
+
 class Review(BaseModel):
     review_id: str
     course: Course
