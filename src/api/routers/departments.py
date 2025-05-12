@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import sqlalchemy
+from src.api.routers.models import Course, Professor
 from src import database as db
 
 router = APIRouter(prefix="/departments", tags=["departments"])
