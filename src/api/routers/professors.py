@@ -38,6 +38,8 @@ class NewProfessor(BaseModel):
     department: str
     metadata: dict = {}
 
+# TODO: allow metadata to be attaching courses to professor
+# TODO: add endpoint for attaching courses to a professor
 @router.get("/{professor_id}")
 async def get_professor_details(professor_id: str) -> ProfessorDetails:
     """Get detailed information about a professor including their reviews."""

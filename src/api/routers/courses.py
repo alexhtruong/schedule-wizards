@@ -19,7 +19,7 @@ class CourseAggregates(BaseModel):
 class CourseCreate(BaseModel):
     course_code: str
     name: str
-    department: str
+    department: int
 
 @router.get("/")
 async def list_courses(
