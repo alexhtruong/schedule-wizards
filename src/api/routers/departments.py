@@ -17,7 +17,7 @@ class DepartmentCreate(BaseModel):
     name: str
     abbrev: str
     school_id: int
-    
+
 
 @router.post("/")
 async def create_department(department: DepartmentCreate):
@@ -43,7 +43,7 @@ async def create_department(department: DepartmentCreate):
                 detail="department already exists!"
             )
 
-        department_id = connection.execute(
+        result = connection.execute(
             sqlalchemy.text(
                 """
                 INSERT INTO department
@@ -61,4 +61,7 @@ async def create_department(department: DepartmentCreate):
                 "school_id": department.school_id
             }
         )
+
+        department_id = result.scalar_one()
+
         return {"id": str(department_id), "message": "Department created successfully"}
