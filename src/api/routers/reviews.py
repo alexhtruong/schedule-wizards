@@ -20,7 +20,7 @@ class Course(BaseModel):
     professors: List[Professor]
 
 class Review(BaseModel):
-    review_id: str
+    review_id: int
     course: Course
     term: str
     difficulty_rating: int
@@ -31,9 +31,8 @@ class Review(BaseModel):
     user_id: str
 
 class ReviewCreate(BaseModel):
-    course_id: str
-    professor_id: str
-    professor_name: str
+    course_id: int
+    professor_id: int
     user_id: str
     term: str 
     difficulty_rating: int = Field(ge=1, le=5)

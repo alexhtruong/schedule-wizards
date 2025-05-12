@@ -16,7 +16,7 @@ class Course(BaseModel):
     professors: List[Professor]
 
 class Review(BaseModel):
-    review_id: str
+    review_id: int
     course: Course
     term: str
     difficulty_rating: int
