@@ -15,14 +15,14 @@ class School(BaseModel):
     name: str
     city: str
     state: str
-    country: str 
+    country: str
 
 class SchoolCreate(BaseModel):
     name: str
     city: str
     state: str
-    country: str 
-    
+    country: str
+
 
 @router.post("/")
 async def create_school(school: SchoolCreate):
@@ -68,5 +68,6 @@ async def create_school(school: SchoolCreate):
                 "country": school.country
             }
         )
-        return {"id": str(school_id), "message": "School created successfully"}
+        school_id = result.scalar_one()
+        return {"id": school_id, "message": "School created successfully"}
 
