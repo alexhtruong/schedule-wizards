@@ -28,12 +28,10 @@ class Review(BaseModel):
     workload_estimate: int
     tags: List[str]
     comments: str
-    user_id: int
 
 class ReviewCreate(BaseModel):
     course_id: int
     professor_id: int
-    user_id: int
     term: str 
     difficulty_rating: int = Field(ge=1, le=5)
     overall_rating: int = Field(ge=1, le=5)
@@ -78,37 +76,16 @@ async def create_review(review: ReviewCreate):
                 detail="Professor is not assigned to this course"
             )
             
-        # check for duplicate review
-        dup_review = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT 1 
-                FROM review 
-                WHERE course_id = :course_id 
-                AND student_id = :student_id
-                """
-            ),
-            {
-                "course_id": review.course_id,
-                "student_id": review.user_id
-            }
-        ).first()
-        if dup_review:
-            raise HTTPException(
-                status_code=400,
-                detail="You have already reviewed this course"
-            )
-            
         try:
             review_id = connection.execute(
                 sqlalchemy.text(
                     """
                     INSERT INTO review 
                     (course_id, term, difficulty, overall_rating, 
-                    workload_rating, comments, student_id)
+                    workload_rating, comments)
                     VALUES 
                     (:course_id, :term, :difficulty, :rating, 
-                    :workload, :comments, :student_id)
+                    :workload, :comments)
                     RETURNING id
                     """    
                 ), {
@@ -117,8 +94,7 @@ async def create_review(review: ReviewCreate):
                 'difficulty': review.difficulty_rating,
                 'rating': review.overall_rating,
                 'workload': review.workload_estimate,
-                'comments': review.comments,
-                'student_id': review.user_id
+                'comments': review.comments
             }).scalar_one()
             
             for tag in review.tags:
@@ -146,46 +122,68 @@ async def create_review(review: ReviewCreate):
                     ),
                     {'review_id': review_id, 'tag_id': tag_id}
                 )
+
+            # Update course statistics
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    UPDATE course c
+                    SET 
+                        avg_workload = COALESCE((
+                            SELECT AVG(workload_rating)
+                            FROM review
+                            WHERE course_id = c.id
+                        ), 0),
+                        avg_rating = COALESCE((
+                            SELECT ROUND(AVG(overall_rating), 2)
+                            FROM review
+                            WHERE course_id = c.id
+                        ), 0)
+                    WHERE c.id = :course_id
+                    """
+                ),
+                {'course_id': review.course_id}
+            )
+
+            # Update professor statistics
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    UPDATE professor p
+                    SET 
+                        avg_workload = COALESCE((
+                            SELECT AVG(r.workload_rating)
+                            FROM review r
+                            JOIN professors_courses pc ON r.course_id = pc.course_id
+                            WHERE pc.professor_id = p.id
+                        ), 0),
+                        avg_difficulty = COALESCE((
+                            SELECT AVG(r.difficulty)
+                            FROM review r
+                            JOIN professors_courses pc ON r.course_id = pc.course_id
+                            WHERE pc.professor_id = p.id
+                        ), 0),
+                        avg_rating = COALESCE((
+                            SELECT ROUND(AVG(r.overall_rating), 2)
+                            FROM review r
+                            JOIN professors_courses pc ON r.course_id = pc.course_id
+                            WHERE pc.professor_id = p.id
+                        ), 0),
+                        total_reviews = (
+                            SELECT COUNT(*)
+                            FROM review r
+                            JOIN professors_courses pc ON r.course_id = pc.course_id
+                            WHERE pc.professor_id = p.id
+                        )
+                    WHERE p.id = :professor_id
+                    """
+                ),
+                {'professor_id': review.professor_id}
+            )
             return {"id": str(review_id), "message": "Review created successfully"}
         except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=500,
                 detail="Error creating review"
             ) from e
-
-# @router.post("/{review_id}/report")
-# async def report_review(review_id: str, report: ReportCreate):
-#     """Report an inappropriate review."""
-#     # validate review exists
-#     with db.engine.begin() as connection:
-#         exists = connection.execute(
-#             sqlalchemy.text(
-#                 'SELECT 1 FROM review WHERE id = :id'
-#             ),
-#             {'id': review_id}
-#         ).first()
-        
-#         if not exists:
-#             raise HTTPException(
-#                 status_code=404, 
-#                 detail="Review not found"
-#             )
-            
-#         connection.execute(
-#             sqlalchemy.text(
-#                 """
-#                 INSERT INTO review_report
-#                 (review_id, reason, details)
-#                 VALUES (:review_id, :reason, :details)
-#                 """
-#             ),
-#             {
-#                 'review_id': review_id,
-#                 'reason': report.reason,
-#                 'details': report.details
-#             }
-#         )
-        
-#         return {
-#             "message": "Review has been reported and will be reviewed by moderators."
-#         }

@@ -17,7 +17,6 @@ class Review(BaseModel):
     workload_estimate: int
     tags: List[str]
     comments: str
-    user_id: int
 
 class ProfessorDetails(BaseModel):
     professor: Professor
@@ -85,8 +84,7 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                     r.difficulty,
                     r.overall_rating,
                     r.workload_rating,
-                    r.comments,
-                    r.student_id
+                    r.comments
                 FROM review r
                 JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
@@ -149,7 +147,6 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                 workload_estimate=row.workload_rating,
                 tags=[],
                 comments=row.comments,
-                user_id=str(row.student_id)
             )
             reviews.append(review)
 
