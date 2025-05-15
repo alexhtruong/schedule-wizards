@@ -55,7 +55,7 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
         if not prof_result:
             raise HTTPException(status_code=404, detail="Professor not found")
 
-        # Fetch all courses for this professor
+        # fetch all courses for this professor
         courses_result = connection.execute(
             sqlalchemy.text(
                 """
@@ -114,10 +114,10 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
 
         courses = [
             {
-                "course_id": int(row.id),  # Make sure it's an integer
+                "course_id": int(row.id),  
                 "name": row.name,
                 "department": row.department,
-                "professors": []  # This will be populated by the API if needed
+                "professors": []
             } for row in courses_result
         ]
         print(courses)
@@ -127,7 +127,7 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
             name=prof_result.name,
             department=prof_result.department,
             num_reviews=prof_result.total_reviews or 0,
-            courses=courses  # Now properly including the courses
+            courses=courses
         )
 
         reviews = []
@@ -135,8 +135,8 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
             course = {
                 "course_id": int(row.course_id),
                 "name": row.course_name,
-                "department": "",  # Since we already have it in the professor object
-                "professors": []  # This will be populated by the API if needed
+                "department": "",  
+                "professors": []  
             }
             review = Review(
                 review_id=str(row.review_id),

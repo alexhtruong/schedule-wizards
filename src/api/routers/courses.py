@@ -152,60 +152,70 @@ async def get_course(course_code: str) -> Course:
         return list(courses_dict.values())[0]
 
 
-@router.get("/{course_id}/professors")
-async def get_course_professors(course_id: str) -> List[Professor]:
-    """Get professors teaching a specific course."""
+@router.get("/{course_code}/professors")
+async def get_course_professors(course_code: str) -> List[Professor]:
+    """Get professors teaching a specific course by its code (e.g., 'ME101', 'CSC101')."""
     with db.engine.begin() as connection:
         result = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT 
-                    c.id as course_id,
-                    c.name,
-                    d.abbrev as department,
                     p.id as prof_id,
-                    p.name as prof_name
+                    p.name as prof_name,
+                    d.abbrev as department,
+                    (
+                        SELECT COUNT(*)
+                        FROM review r
+                        JOIN professors_courses pc2 ON r.course_id = pc2.course_id
+                        WHERE pc2.professor_id = p.id
+                    ) as num_reviews
                 FROM course c
                 JOIN department_courses dc ON c.id = dc.course_id
                 JOIN department d ON dc.department_id = d.id
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN professor p ON pc.professor_id = p.id
-                WHERE c.id = :course_id
+                WHERE c.course_code = :course_code
                 """
             ),
-            {"course_id": course_id}
+            {"course_code": course_code.upper()}
         ).all()
         
     if not result:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail=f"Course {course_code} not found")
         
-    course_data = None
+    professors = []
     for row in result:
-        if not course_data:
-            course_data = Course(
-                course_id=row.course_id,
-                name=row.name,
-                department=row.department,
-                professors=[]
-            )
-        course_data.professors.append(
+        professors.append(
             Professor(
                 id=str(row.prof_id),
                 name=row.prof_name,
                 department=row.department,
-                num_reviews=0
+                num_reviews=row.num_reviews or 0,
+                courses=[] 
             )
         )
             
-    if not course_data:
-        raise HTTPException(status_code=404, detail="Course not found")
-    
-    return course_data
+    return professors
 
-@router.get("/{course_id}/statistics")
-async def get_course_aggregates(course_id: str) -> CourseAggregates:
-    """Get aggregated statistics for a course."""
+@router.get("/{course_code}/statistics")
+async def get_course_aggregates(course_code: str) -> CourseAggregates:
+    """Get aggregated statistics for a course by its code (e.g., 'ME101', 'CSC101')."""
     with db.engine.begin() as connection:
+        # first get the course_id from the course_code
+        course = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id 
+                FROM course 
+                WHERE course_code = :course_code
+                """
+            ),
+            {"course_code": course_code.upper()}
+        ).first()
+
+        if not course:
+            raise HTTPException(status_code=404, detail=f"Course {course_code} not found")
+
         result = connection.execute(
             sqlalchemy.text(
                 """
@@ -218,11 +228,8 @@ async def get_course_aggregates(course_id: str) -> CourseAggregates:
                 WHERE r.course_id = :course_id
                 """
             ),
-            {"course_id": course_id}
+            {"course_id": course.id}
         ).first()
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Course not found")
         
         tags_query = """
             SELECT t.name AS tag_name
@@ -236,7 +243,7 @@ async def get_course_aggregates(course_id: str) -> CourseAggregates:
         """
         tags = [row.tag_name for row in connection.execute(
             sqlalchemy.text(tags_query),
-            {"course_id": course_id}).all()
+            {"course_id": course.id}).all()
         ]
     
         
@@ -264,7 +271,7 @@ async def create_course(course: CourseCreate):
                 detail=f"Department {course.department} does not exist"
             )
             
-        # Create course
+        # create course
         course_id = connection.execute(
             sqlalchemy.text(
                 """
@@ -274,7 +281,7 @@ async def create_course(course: CourseCreate):
                 """
             ),
             {
-                "course_code": course.course_code,
+                "course_code": course.course_code.upper(),
                 "name": course.name,
             }
         ).scalar_one()

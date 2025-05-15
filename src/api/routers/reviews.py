@@ -123,7 +123,7 @@ async def create_review(review: ReviewCreate):
                     {'review_id': review_id, 'tag_id': tag_id}
                 )
 
-            # Update course statistics
+            # update course statistics
             connection.execute(
                 sqlalchemy.text(
                     """
@@ -145,7 +145,7 @@ async def create_review(review: ReviewCreate):
                 {'course_id': review.course_id}
             )
 
-            # Update professor statistics
+            # update professor statistics
             connection.execute(
                 sqlalchemy.text(
                     """
