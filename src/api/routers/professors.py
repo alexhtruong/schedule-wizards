@@ -8,13 +8,6 @@ from src import database as db
 
 router = APIRouter(prefix="/professors", tags=["professors"])
 
-
-class Course(BaseModel):
-    course_id: int
-    name: str
-    department: str
-    professors: List[Professor]
-
 class Review(BaseModel):
     review_id: int
     course: Course
@@ -42,7 +35,7 @@ class NewProfessor(BaseModel):
 # TODO: add endpoint for attaching courses to a professor
 @router.get("/{professor_id}")
 async def get_professor_details(professor_id: str) -> ProfessorDetails:
-    """Get detailed information about a professor including their reviews."""
+    """Get detailed information about a professor including their reviews and courses."""
     with db.engine.begin() as connection:
         prof_result = connection.execute(
             sqlalchemy.text(
@@ -62,6 +55,23 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
         ).first()
         if not prof_result:
             raise HTTPException(status_code=404, detail="Professor not found")
+
+        # Fetch all courses for this professor
+        courses_result = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT 
+                    c.id,
+                    c.course_code,
+                    c.name,
+                    d.abbrev as department
+                FROM course c
+                JOIN professors_courses pc ON c.id = pc.course_id
+                JOIN department d ON c.department_id = d.id
+                WHERE pc.professor_id = :prof_id
+                """
+            ), {"prof_id": professor_id}
+        ).all()
 
         reviews_result = connection.execute(
             sqlalchemy.text(
@@ -104,20 +114,32 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                 """    
             ), {"prof_id": professor_id})
 
+        courses = [
+            {
+                "course_id": int(row.id),  # Make sure it's an integer
+                "name": row.name,
+                "department": row.department,
+                "professors": []  # This will be populated by the API if needed
+            } for row in courses_result
+        ]
+        print(courses)
+
         professor = Professor(
             id=str(prof_result.id),
             name=prof_result.name,
             department=prof_result.department,
-            num_reviews=prof_result.total_reviews or 0
+            num_reviews=prof_result.total_reviews or 0,
+            courses=courses  # Now properly including the courses
         )
 
         reviews = []
         for row in reviews_result:
-            course = Course(
-                id=str(row.course_id),
-                code=row.course_code,
-                name=row.course_name
-            )
+            course = {
+                "course_id": int(row.course_id),
+                "name": row.course_name,
+                "department": "",  # Since we already have it in the professor object
+                "professors": []  # This will be populated by the API if needed
+            }
             review = Review(
                 review_id=str(row.review_id),
                 course=course,
@@ -170,3 +192,62 @@ async def create_professor(professor: NewProfessor):
         ).scalar()
         
         return {"id": str(new_id), "message": "Professor created successfully"}
+
+@router.post("/{professor_id}/courses")
+async def attach_courses_to_professor(
+    professor_id: str,
+    course_codes: List[str]
+) -> dict:
+    """Attach courses to a professor."""
+    with db.engine.begin() as connection:
+        # first verify the professor exists
+        professor = connection.execute(
+            sqlalchemy.text(
+                "SELECT id FROM professor WHERE id = :prof_id"
+            ),
+            {"prof_id": professor_id}
+        ).first()
+        
+        if not professor:
+            raise HTTPException(
+                status_code=404,
+                detail="Professor not found"
+            )
+        
+        # verify all courses exist and get their IDs
+        courses = connection.execute(
+            sqlalchemy.text(
+                "SELECT id, course_code FROM course WHERE course_code = ANY(:course_codes)"
+            ),
+            {"course_codes": course_codes}
+        ).all()
+        
+        if len(courses) != len(course_codes):
+            raise HTTPException(
+                status_code=400,
+                detail="One or more course codes are invalid"
+            )
+            
+        # add the associations
+        for course in courses:
+            try:
+                connection.execute(
+                    sqlalchemy.text(
+                        """
+                        INSERT INTO professors_courses (professor_id, course_id)
+                        VALUES (:prof_id, :course_id)
+                        ON CONFLICT DO NOTHING
+                        """
+                    ),
+                    {
+                        "prof_id": professor_id,
+                        "course_id": course.id
+                    }
+                )
+            except sqlalchemy.exc.IntegrityError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid association between professor {professor_id} and course {course.course_code}"
+                )
+                
+        return {"message": f"Successfully attached {len(course_codes)} courses to professor {professor_id}"}

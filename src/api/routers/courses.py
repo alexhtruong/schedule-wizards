@@ -19,7 +19,7 @@ class CourseAggregates(BaseModel):
 class CourseCreate(BaseModel):
     course_code: str
     name: str
-    department: int
+    department: str
 
 @router.get("/")
 async def list_courses(
@@ -49,8 +49,8 @@ async def list_courses(
         FROM course c
         JOIN department_courses dc ON c.id = dc.course_id
         JOIN department d ON dc.department_id = d.id
-        JOIN professors_courses pc ON c.id = pc.course_id
-        JOIN professor p ON pc.professor_id = p.id
+        LEFT JOIN professors_courses pc ON c.id = pc.course_id
+        LEFT JOIN professor p ON pc.professor_id = p.id
         WHERE 1=1
     """
     params = {}
@@ -84,15 +84,22 @@ async def list_courses(
                 department=row.department,
                 professors=[]
             )
-        courses_dict[row.course_id].professors.append(
-            Professor(name=row.prof_name, professor_id=str(row.prof_id))
-        )
+        # Only append professor if both id and name exist
+        if row.prof_id is not None and row.prof_name is not None:
+            courses_dict[row.course_id].professors.append(
+                Professor(
+                    id=str(row.prof_id),
+                    name=row.prof_name,
+                    department=row.department,
+                    num_reviews=0  # Default value since we don't have this in the query
+                )
+            )
             
     return list(courses_dict.values())
 
-@router.get("/{course_id}")
-async def get_course(course_id: str) -> Course:
-    """Get a specific course's details."""
+@router.get("/{course_code}")
+async def get_course(course_code: str) -> Course:
+    """Get a specific course's details by name."""
     with db.engine.begin() as conn:
         result = conn.execute(
             sqlalchemy.text(
@@ -106,12 +113,12 @@ async def get_course(course_id: str) -> Course:
                 FROM course c
                 JOIN department_courses dc ON c.id = dc.course_id
                 JOIN department d ON dc.department_id = d.id
-                JOIN professors_courses pc ON c.id = pc.course_id
-                JOIN professor p ON pc.professor_id = p.id
-                WHERE c.id = :course_id
+                LEFT JOIN professors_courses pc ON c.id = pc.course_id
+                LEFT JOIN professor p ON pc.professor_id = p.id
+                WHERE c.course_code = :course_code
                 """
             ),
-            {"course_id": course_id}
+            {"course_code": course_code.upper()}
         ).all()
 
         if not result:
@@ -126,9 +133,15 @@ async def get_course(course_id: str) -> Course:
                     department=row.department,
                     professors=[]
                 )
-            courses_dict[row.course_id].professors.append(
-                Professor(name=row.prof_name, professor_id=str(row.prof_id))
-            )
+            if row.prof_id is not None and row.prof_name is not None:
+                courses_dict[row.course_id].professors.append(
+                    Professor(
+                        id=str(row.prof_id),
+                        name=row.prof_name,
+                        department=row.department,
+                        num_reviews=0
+                    )
+                )
  
         if len(courses_dict) != 1:
             raise HTTPException(
@@ -176,7 +189,12 @@ async def get_course_professors(course_id: str) -> List[Professor]:
                 professors=[]
             )
         course_data.professors.append(
-            Professor(name=row.prof_name, professor_id=str(row.prof_id))
+            Professor(
+                id=str(row.prof_id),
+                name=row.prof_name,
+                department=row.department,
+                num_reviews=0
+            )
         )
             
     if not course_data:
