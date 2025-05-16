@@ -188,3 +188,103 @@ async def create_review(review: ReviewCreate):
                 status_code=500,
                 detail="Error creating review"
             ) from e
+
+@router.get("/course/{course_code}")
+async def get_course_reviews(course_code: str):
+    """Get all reviews for a specific course."""
+    with db.engine.begin() as connection:
+        reviews = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT r.id, r.term, r.difficulty, r.overall_rating, 
+                       r.workload_rating, r.comments,
+                       c.name as course_name, c.course_code,
+                       p.name as professor_name,
+                       array_agg(t.name) as tags
+                FROM review r
+                JOIN course c ON r.course_id = c.id
+                JOIN professors_courses pc ON c.id = pc.course_id
+                JOIN professor p ON p.id = pc.professor_id
+                LEFT JOIN review_tags rt ON r.id = rt.review_id
+                LEFT JOIN tag t ON rt.tag_id = t.id
+                WHERE UPPER(c.course_code) = UPPER(:course_code)
+                GROUP BY r.id, r.term, r.difficulty, r.overall_rating, 
+                         r.workload_rating, r.comments, c.name, 
+                         c.course_code, p.name
+                ORDER BY r.id DESC
+                """
+            ),
+            {"course_code": course_code}
+        ).fetchall()
+
+        if not reviews:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No reviews found for course {course_code}"
+            )
+
+        return [
+            {
+                "review_id": review.id,
+                "term": review.term,
+                "difficulty_rating": review.difficulty,
+                "overall_rating": review.overall_rating,
+                "workload_estimate": review.workload_rating,
+                "comments": review.comments,
+                "course_name": review.course_name,
+                "course_code": review.course_code,
+                "professor_name": review.professor_name,
+                "tags": [tag for tag in (review.tags or []) if tag is not None]
+            }
+            for review in reviews
+        ]
+
+@router.get("/professor/{professor_name}")
+async def get_professor_reviews(professor_name: str):
+    """Get all reviews for a specific professor."""
+    with db.engine.begin() as connection:
+        reviews = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT r.id, r.term, r.difficulty, r.overall_rating, 
+                       r.workload_rating, r.comments,
+                       c.name as course_name, c.course_code,
+                       p.name as professor_name,
+                       array_agg(t.name) as tags
+                FROM review r
+                JOIN course c ON r.course_id = c.id
+                JOIN professors_courses pc ON c.id = pc.course_id
+                JOIN professor p ON p.id = pc.professor_id
+                LEFT JOIN review_tags rt ON r.id = rt.review_id
+                LEFT JOIN tag t ON rt.tag_id = t.id
+                WHERE p.name = :professor_name
+                GROUP BY r.id, r.term, r.difficulty, r.overall_rating, 
+                         r.workload_rating, r.comments, c.name, 
+                         c.course_code, p.name
+                ORDER BY r.id DESC
+                """
+            ),
+            {"professor_name": professor_name}
+        ).fetchall()
+
+        if not reviews:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No reviews found for professor {professor_name}"
+            )
+
+        return [
+            {
+                "review_id": review.id,
+                "term": review.term,
+                "difficulty_rating": review.difficulty,
+                "overall_rating": review.overall_rating,
+                "workload_estimate": review.workload_rating,
+                "comments": review.comments,
+                "course_name": review.course_name,
+                "course_code": review.course_code,
+                "professor_name": review.professor_name,
+                "tags": [tag for tag in (review.tags or []) if tag is not None]
+            }
+            for review in reviews
+        ]
