@@ -1,9 +1,5 @@
-from ssl import CHANNEL_BINDING_TYPES
-from unittest.util import strclass
-from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
-import sqlalchemy
+from typing import List
 
 
 class Professor(BaseModel):

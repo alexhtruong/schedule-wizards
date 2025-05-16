@@ -30,9 +30,9 @@ class Review(BaseModel):
     comments: str
 
 class ReviewCreate(BaseModel):
-    course_id: int
-    professor_id: int
-    term: str 
+    course_code: str  # e.g. "ME101", "CSC101"
+    professor_name: str  # e.g. "Prof. Smith"
+    term: str  # e.g. "Spring 2025"
     difficulty_rating: int = Field(ge=1, le=5)
     overall_rating: int = Field(ge=1, le=5)
     workload_estimate: int = Field(ge=0, le=168)  # max hours per week
@@ -53,27 +53,28 @@ class ReportCreate(BaseModel):
 async def create_review(review: ReviewCreate):
     """Create a new review."""
     with db.engine.begin() as connection:
-        # check if course and professor are linked
+        # First get the course and professor IDs from their names/codes
         course_and_prof = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT c.id, p.id
+                SELECT c.id as course_id, p.id as prof_id
                 FROM course c
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN professor p ON p.id = pc.professor_id
-                WHERE c.id = :course_id AND p.id = :prof_id
+                WHERE UPPER(c.course_code) = UPPER(:course_code) 
+                AND p.name = :professor_name
                 """
             ),
             {
-                "course_id": review.course_id, 
-                "prof_id": review.professor_id
+                "course_code": review.course_code,
+                "professor_name": review.professor_name
             }
         ).first()
 
         if not course_and_prof:
             raise HTTPException(
                 status_code=400,
-                detail="Professor is not assigned to this course"
+                detail=f"Professor {review.professor_name} is not assigned to course {review.course_code}"
             )
             
         try:
@@ -89,7 +90,7 @@ async def create_review(review: ReviewCreate):
                     RETURNING id
                     """    
                 ), {
-                'course_id': review.course_id,
+                'course_id': course_and_prof.course_id,
                 'term': review.term,
                 'difficulty': review.difficulty_rating,
                 'rating': review.overall_rating,
@@ -142,7 +143,7 @@ async def create_review(review: ReviewCreate):
                     WHERE c.id = :course_id
                     """
                 ),
-                {'course_id': review.course_id}
+                {'course_id': course_and_prof.course_id}
             )
 
             # update professor statistics
@@ -178,7 +179,7 @@ async def create_review(review: ReviewCreate):
                     WHERE p.id = :professor_id
                     """
                 ),
-                {'professor_id': review.professor_id}
+                {'professor_id': course_and_prof.prof_id}
             )
             return {"id": str(review_id), "message": "Review created successfully"}
         except Exception as e:

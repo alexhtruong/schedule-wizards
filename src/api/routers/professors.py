@@ -32,8 +32,8 @@ class NewProfessor(BaseModel):
 
 # TODO: allow metadata to be attaching courses to professor
 # TODO: add endpoint for attaching courses to a professor
-@router.get("/{professor_id}")
-async def get_professor_details(professor_id: str) -> ProfessorDetails:
+@router.get("/{professor_name}")
+async def get_professor_details(professor_name: str) -> ProfessorDetails:
     """Get detailed information about a professor including their reviews and courses."""
     with db.engine.begin() as connection:
         prof_result = connection.execute(
@@ -48,12 +48,12 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                     p.avg_workload
                 FROM professor p
                 JOIN department d ON p.department_id = d.id
-                WHERE p.id = :prof_id
+                WHERE p.name = :prof_name
                 """
-            ), {"prof_id": professor_id}
+            ), {"prof_name": professor_name}
         ).first()
         if not prof_result:
-            raise HTTPException(status_code=404, detail="Professor not found")
+            raise HTTPException(status_code=404, detail=f"Professor '{professor_name}' not found")
 
         # fetch all courses for this professor
         courses_result = connection.execute(
@@ -67,9 +67,10 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                 FROM course c
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN department d ON c.department_id = d.id
-                WHERE pc.professor_id = :prof_id
+                JOIN professor p ON pc.professor_id = p.id
+                WHERE p.name = :prof_name
                 """
-            ), {"prof_id": professor_id}
+            ), {"prof_name": professor_name}
         ).all()
 
         reviews_result = connection.execute(
@@ -84,13 +85,15 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                     r.difficulty,
                     r.overall_rating,
                     r.workload_rating,
-                    r.comments
+                    r.comments,
+                    p.id as professor_id
                 FROM review r
                 JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
-                WHERE pc.professor_id = :prof_id
+                JOIN professor p ON pc.professor_id = p.id
+                WHERE p.name = :prof_name
                 """    
-            ), {"prof_id": professor_id}
+            ), {"prof_name": professor_name}
         )
 
         if not reviews_result:
@@ -110,7 +113,7 @@ async def get_professor_details(professor_id: str) -> ProfessorDetails:
                 ORDER BY count(*) DESC
                 LIMIT 10
                 """    
-            ), {"prof_id": professor_id})
+            ), {"prof_id": prof_result.id})
 
         courses = [
             {
@@ -190,19 +193,19 @@ async def create_professor(professor: NewProfessor):
         
         return {"id": str(new_id), "message": "Professor created successfully"}
 
-@router.post("/{professor_id}/courses")
+@router.post("/{professor_name}/courses")
 async def attach_courses_to_professor(
-    professor_id: str,
+    professor_name: str,
     course_codes: List[str]
 ) -> dict:
-    """Attach courses to a professor."""
+    """Attach courses to a professor by name. Course codes should be in the format 'ME101', 'CSC101', etc."""
     with db.engine.begin() as connection:
         # first verify the professor exists
         professor = connection.execute(
             sqlalchemy.text(
-                "SELECT id FROM professor WHERE id = :prof_id"
+                "SELECT id FROM professor WHERE name = :prof_name"
             ),
-            {"prof_id": professor_id}
+            {"prof_name": professor_name}
         ).first()
         
         if not professor:
@@ -237,14 +240,14 @@ async def attach_courses_to_professor(
                         """
                     ),
                     {
-                        "prof_id": professor_id,
+                        "prof_id": professor.id,
                         "course_id": course.id
                     }
                 )
             except sqlalchemy.exc.IntegrityError:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid association between professor {professor_id} and course {course.course_code}"
+                    detail=f"Invalid association between professor '{professor_name}' and course {course.course_code}"
                 )
                 
-        return {"message": f"Successfully attached {len(course_codes)} courses to professor {professor_id}"}
+        return {"message": f"Successfully attached {len(course_codes)} courses to professor '{professor_name}'"}
