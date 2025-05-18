@@ -5,6 +5,7 @@ import sqlalchemy
 from src.api.routers.models import Course, Professor
 from src.api.routers.reviews import Review
 from src import database as db
+from collections import defaultdict
 
 router = APIRouter(prefix="/professors", tags=["professors"])
 
@@ -95,12 +96,15 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     r.overall_rating,
                     r.workload_rating,
                     r.comments,
-                    p.id as professor_id
+                    p.id as professor_id,
+                    tag.name as tag_name
                     FROM review r
                     JOIN course c ON r.course_id = c.id
                     JOIN professors_courses pc ON c.id = pc.course_id
                     JOIN professor p ON pc.professor_id = p.id
                     JOIN department d ON c.department_id = d.id
+                    JOIN review_tags ON r.id = review_tags.review_id
+                    JOIN tag ON review_tags.tag_id = tag.id
                     WHERE p.name = :prof_name 
             """
             ), {"prof_name": professor_name}
@@ -145,25 +149,37 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
             num_reviews=prof_result.total_reviews or 0,
             courses=courses
         )
+        
 
-        reviews = []
+
+        review_map = {}
+
         for row in reviews_result:
-            course = {
-                "course_id": int(row.course_id),
-                "name": row.course_name,
-                "department": row.department,    
-            }
-            review = Review(
-                review_id=str(row.review_id),
-                course=course,
-                term=row.term,
-                difficulty_rating=row.difficulty,
-                overall_rating=row.overall_rating,
-                workload_estimate=row.workload_rating,
-                tags=[],
-                comments=row.comments,
-            )
-            reviews.append(review)
+            review_id = row.review_id
+
+            if review_id not in review_map:
+                course = {
+                    "course_id": int(row.course_id),
+                    "name": row.course_name,
+                    "department": row.department,
+                }
+
+                review_map[review_id] = Review(
+                    review_id=str(review_id),
+                    course=course,
+                    term=row.term,
+                    difficulty_rating=row.difficulty,
+                    overall_rating=row.overall_rating,
+                    workload_estimate=row.workload_rating,
+                    tags=[],
+                    comments=row.comments,
+                )
+
+            tag_name = row.tag_name
+            if tag_name and tag_name not in review_map[review_id].tags:
+                review_map[review_id].tags.append(tag_name)
+
+        reviews = list(review_map.values())
 
         tags = [row.tag_name for row in tags_result]
 
