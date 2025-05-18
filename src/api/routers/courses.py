@@ -40,18 +40,18 @@ async def list_courses(
         )
     
     query = """
-        SELECT 
-            c.id as course_id,
-            c.name,
-            d.abbrev as department,
-            p.id as prof_id,
-            p.name as prof_name
-        FROM course c
-        JOIN department_courses dc ON c.id = dc.course_id
-        JOIN department d ON dc.department_id = d.id
-        LEFT JOIN professors_courses pc ON c.id = pc.course_id
-        LEFT JOIN professor p ON pc.professor_id = p.id
-        WHERE 1=1
+    SELECT 
+        d.id AS department_id,
+        d.abbrev AS department,
+        c.id AS course_id,
+        c.name AS name,
+        p.id AS prof_id,
+        p.name AS prof_name
+    FROM department d
+    JOIN department_courses dc ON d.id = dc.department_id
+    LEFT JOIN course c ON dc.course_id = c.id
+    LEFT JOIN professors_courses pc ON c.id = pc.course_id
+    LEFT JOIN professor p ON pc.professor_id = p.id
     """
     params = {}
     
@@ -104,12 +104,13 @@ async def get_course(course_code: str) -> Course:
         result = conn.execute(
             sqlalchemy.text(
                 """
-                SELECT 
+                SELECT
                     c.id as course_id,
                     c.name,
                     d.abbrev as department,
                     p.id as prof_id,
-                    p.name as prof_name
+                    p.name as prof_name,
+                    p.total_reviews as total_reviews
                 FROM course c
                 JOIN department_courses dc ON c.id = dc.course_id
                 JOIN department d ON dc.department_id = d.id
@@ -139,7 +140,7 @@ async def get_course(course_code: str) -> Course:
                         id=str(row.prof_id),
                         name=row.prof_name,
                         department=row.department,
-                        num_reviews=0
+                        num_reviews=row.total_reviews
                     )
                 )
  
