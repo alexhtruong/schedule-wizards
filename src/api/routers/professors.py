@@ -59,14 +59,20 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
         courses_result = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT 
-                    c.id,
+                SELECT
+                    r.id as review_id,
+                    c.id as course_id,
                     c.course_code,
-                    c.name,
-                    d.abbrev as department
-                FROM course c
+                    c.name as course_name,
+                    r.term,
+                    r.difficulty,
+                    r.overall_rating,
+                    r.workload_rating,
+                    r.comments,
+                    p.id as professor_id
+                FROM review r
+                JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
-                JOIN department d ON c.department_id = d.id
                 JOIN professor p ON pc.professor_id = p.id
                 WHERE p.name = :prof_name
                 """
@@ -87,12 +93,12 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     r.workload_rating,
                     r.comments,
                     p.id as professor_id
-                FROM review r
-                JOIN course c ON r.course_id = c.id
-                JOIN professors_courses pc ON c.id = pc.course_id
-                JOIN professor p ON pc.professor_id = p.id
-                WHERE p.name = :prof_name
-                """    
+                    FROM review r
+                    JOIN course c ON r.course_id = c.id
+                    JOIN professors_courses pc ON c.id = pc.course_id
+                    JOIN professor p ON pc.professor_id = p.id
+                    WHERE p.name = :prof_name 
+            """
             ), {"prof_name": professor_name}
         )
 
@@ -101,26 +107,29 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                 status_code=400,
                 detail="Professor currently doesn't have reviews"
             )
+
         
         tags_result = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT t.name AS tag_name
-                FROM professor_tags pt
-                JOIN tag t ON pt.tag_id = t.id
-                WHERE pt.professor_id = :prof_id
+                SELECT t.name AS tag_name, COUNT(*) AS count
+                FROM professor p
+                JOIN professors_courses pc ON p.id = pc.professor_id
+                JOIN review r ON r.course_id = pc.course_id
+                JOIN review_tags rt ON rt.review_id = r.id
+                JOIN tag t ON rt.tag_id = t.id
+                WHERE p.id = :prof_id
                 GROUP BY t.name
-                ORDER BY count(*) DESC
+                ORDER BY count DESC
                 LIMIT 10
-                """    
+                """
             ), {"prof_id": prof_result.id})
-
+        
         courses = [
             {
-                "course_id": int(row.id),  
-                "name": row.name,
-                "department": row.department,
-                "professors": []
+                "course_id": int(row.course_id),  
+                "name": row.course_name,
+                "department": "",
             } for row in courses_result
         ]
         print(courses)
@@ -138,8 +147,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
             course = {
                 "course_id": int(row.course_id),
                 "name": row.course_name,
-                "department": "",  
-                "professors": []  
+                "department": "",    
             }
             review = Review(
                 review_id=str(row.review_id),
