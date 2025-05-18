@@ -64,6 +64,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     c.id as course_id,
                     c.course_code,
                     c.name as course_name,
+                    d.abbrev as department,
                     r.term,
                     r.difficulty,
                     r.overall_rating,
@@ -74,6 +75,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                 JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN professor p ON pc.professor_id = p.id
+                JOIN department d ON c.department_id = d.id
                 WHERE p.name = :prof_name
                 """
             ), {"prof_name": professor_name}
@@ -129,7 +131,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
             {
                 "course_id": int(row.course_id),  
                 "name": row.course_name,
-                "department": "",
+                "department": row.department,
             } for row in courses_result
         ]
         print(courses)
