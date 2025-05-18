@@ -13,7 +13,7 @@ class Course(BaseModel):
     course_id: int
     name: str
     department: str
-    #professors: List["Professor"] = []  
+    professors: List["Professor"] = []  
 
 Professor.model_rebuild()
 Course.model_rebuild()

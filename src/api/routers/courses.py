@@ -46,7 +46,8 @@ async def list_courses(
         c.id AS course_id,
         c.name AS name,
         p.id AS prof_id,
-        p.name AS prof_name
+        p.name AS prof_name,
+        p.total_reviews AS num_reviews
     FROM department d
     JOIN department_courses dc ON d.id = dc.department_id
     LEFT JOIN course c ON dc.course_id = c.id
@@ -91,7 +92,7 @@ async def list_courses(
                     id=str(row.prof_id),
                     name=row.prof_name,
                     department=row.department,
-                    num_reviews=0  # Default value since we don't have this in the query
+                    num_reviews=row.num_reviews
                 )
             )
             
@@ -140,7 +141,7 @@ async def get_course(course_code: str) -> Course:
                         id=str(row.prof_id),
                         name=row.prof_name,
                         department=row.department,
-                        num_reviews=row.total_reviews
+                        num_reviews=row.total_reviews or 0
                     )
                 )
  
