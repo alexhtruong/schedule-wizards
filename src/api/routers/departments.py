@@ -23,6 +23,25 @@ class DepartmentCreate(BaseModel):
 async def create_department(department: DepartmentCreate):
     """Create a new department."""
     with db.engine.begin() as connection:
+        existing_school = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT 1
+                FROM school
+                WHERE school.id = :id
+                """
+                ),
+            {
+                "id": department.school_id
+            }
+            ).first()
+
+        if existing_school is None:
+            raise HTTPException(
+                status_code=400,
+                detail="school does not exist!"
+            )
+        
         existing_department = connection.execute(
             sqlalchemy.text(
                 """
