@@ -17,57 +17,36 @@ async def create_department(department: DepartmentCreate):
                 FROM school
                 WHERE school.id = :id
                 """
-                ),
-            {
-                "id": department.school_id
-            }
-            ).first()
+            ),
+            {"id": department.school_id}
+        ).first()
 
         if existing_school is None:
             raise HTTPException(
-                status_code=400,
-                detail="school does not exist!"
+                status_code=404,
+                detail="School does not exist!"
             )
         
-        existing_department = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT 1
-                FROM department
-                WHERE department.name = :name AND department.school_id = :school_id
-                """
-            ),
-            {
-                "name": department.name,
-                "school_id": department.school_id
-            }
-        ).first()
-
-        if existing_department is not None:
-            raise HTTPException(
-                status_code=400,
-                detail="department already exists!"
+        try:
+            result = connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO department
+                    (name, abbrev, school_id)
+                    VALUES (:name, :abbrev, :school_id)
+                    RETURNING id
+                    """
+                ),
+                {
+                    "name": department.name,
+                    "abbrev": department.abbrev,
+                    "school_id": department.school_id
+                }
             )
-
-        result = connection.execute(
-            sqlalchemy.text(
-                """
-                INSERT INTO department
-                (name,
-                abbrev,
-                school_id)
-                VALUES
-                (:name, :abbrev, :school_id)
-                RETURNING id
-                """
-            ),
-            {
-                "name": department.name,
-                "abbrev": department.abbrev,
-                "school_id": department.school_id
-            }
-        )
-
-        department_id = result.scalar_one()
-
-        return {"id": str(department_id), "message": "Department created successfully"}
+            department_id = result.scalar_one()
+            return {"id": str(department_id), "message": "Department created successfully"}
+        except sqlalchemy.exc.IntegrityError as e:
+            raise HTTPException(
+            status_code=409,
+            detail="Department already exists"
+            ) from e

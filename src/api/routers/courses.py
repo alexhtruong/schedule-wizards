@@ -133,8 +133,8 @@ async def get_course(course_code: str) -> Course:
  
         if len(courses_dict) != 1:
             raise HTTPException(
-                status_code=500,
-                detail="Expected exactly one course, found multiple"
+            status_code=409,
+            detail="Expected exactly one course, found multiple"
             )
     
         return list(courses_dict.values())[0]
@@ -255,7 +255,7 @@ async def create_course(course: CourseCreate):
         
         if not dept:
             raise HTTPException(
-                status_code=400,
+                status_code=404,
                 detail=f"Department {course.department} does not exist"
             )
             
