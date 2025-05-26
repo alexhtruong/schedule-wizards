@@ -39,6 +39,45 @@ class Review(BaseModel):
         if not all(2 <= len(tag) <= 30 for tag in v):
             raise ValueError('Each tag must be between 2 and 30 characters')
         return v
+    
+class ReviewCreate(BaseModel):
+    course_code: str  # e.g. "ME101", "CSC101"
+    professor_name: str  # e.g. "Prof. Smith"
+    term: str = Field(min_length=3, max_length=20)
+    difficulty_rating: int = Field(ge=1, le=5)
+    overall_rating: int = Field(ge=1, le=5)
+    workload_estimate: int = Field(ge=0, le=168)  # max hours per week
+    tags: List[str]  
+    comments: str = Field(min_length=10)
+
+    @field_validator('term')
+    def validate_term(cls, v):
+        pattern = r'^(Spring|Summer|Fall|Winter)\s20\d{2}$'
+        if not re.match(pattern, v):
+            raise ValueError('Term must be in format "Season YYYY" (e.g. "Spring 2025")')
+        return v
+
+    @field_validator('comments')
+    def validate_comments(cls, v):
+        if len(v.split()) < 5: 
+            raise ValueError('Comments must be at least 5 words')
+        return v
+    
+    @field_validator('course_code')
+    def validate_course_code(cls, v):
+        if not re.match(r'^[A-Z]{2,4}[0-9]{3,4}[A-Z]?$', v):
+            raise ValueError('Course code must be in format like "CSC101" or "ME301A"')
+        return v
+
+    @field_validator('tags')
+    def validate_tags(cls, v):
+        if not v:
+            return v
+        if not all(2 <= len(tag) <= 30 for tag in v):
+            raise ValueError('Each tag must be between 2 and 30 characters')
+        if len(v) > 10:
+            raise ValueError('Maximum 10 tags allowed per review')
+        return v
 
 class CourseAggregates(BaseModel):
     average_rating: float = Field(ge=0, le=5)
@@ -69,6 +108,27 @@ class Department(BaseModel):
         if not v.isupper():
             raise ValueError('Department abbreviation must be uppercase')
         return v
+    
+class DepartmentLite(BaseModel):
+    department_id: int = Field(gt=0)
+    name: str = Field(min_length=2, max_length=100)
+    abbrev: str = Field(min_length=2, max_length=10)
+
+    @field_validator('name')
+    def validate_name(cls, v):
+        if not v.strip():
+            raise ValueError('Department name cannot be empty or whitespace')
+        if not re.match(r'^[A-Za-z\s&-]+$', v):
+            raise ValueError('Department name can only contain letters, spaces, ampersands, and hyphens')
+        return v
+
+    @field_validator('abbrev')
+    def validate_abbrev(cls, v):
+        if not v.strip():
+            raise ValueError('Abbreviation cannot be empty or whitespace')
+        if not re.match(r'^[A-Z&]+$', v):
+            raise ValueError('Abbreviation must be uppercase letters and ampersands only')
+        return v
 
 class DepartmentCreate(BaseModel):
     name: str = Field(min_length=2, max_length=100)
@@ -82,7 +142,7 @@ class DepartmentCreate(BaseModel):
         return v
 
 class School(BaseModel):
-    id: int
+    id: int = Field(ge=1)
     name: str = Field(min_length=2, max_length=200)
     city: str = Field(min_length=2, max_length=100)
     state: str = Field(min_length=2, max_length=50)
