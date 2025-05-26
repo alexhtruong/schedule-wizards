@@ -2,22 +2,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 import sqlalchemy
-from src.api.routers.models import Professor, Review
+from src.api.routers.models import Professor, Review, ProfessorDetails, NewProfessor
 from src import database as db
 
 router = APIRouter(prefix="/professors", tags=["professors"])
-
-class ProfessorDetails(BaseModel):
-    professor: Professor
-    reviews: List[Review]
-    average_difficulty: float
-    average_workload: float
-    most_common_tags: List[str]
-
-class NewProfessor(BaseModel):
-    name: str
-    department: str
-    metadata: dict = {}
 
 # TODO: allow metadata to be attaching courses to professor
 # TODO: add endpoint for attaching courses to a professor
@@ -59,7 +47,6 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     r.overall_rating,
                     r.workload_rating,
                     r.comments,
-                    p.id as professor_id
                 FROM review r
                 JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
@@ -84,7 +71,6 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     r.overall_rating,
                     r.workload_rating,
                     r.comments,
-                    p.id as professor_id,
                     tag.name as tag_name
                     FROM review r
                     JOIN course c ON r.course_id = c.id
@@ -100,7 +86,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
 
         if not reviews_result:
             raise HTTPException(
-                status_code=400,
+                status_code=404,
                 detail="Professor currently doesn't have reviews"
             )
 
@@ -191,7 +177,7 @@ async def create_professor(professor: NewProfessor):
                 """    
             ), {'dept': professor.department}).scalar()
         if not dept_id:
-            raise HTTPException(status_code=400, detail="Invalid department")
+            raise HTTPException(status_code=404, detail="Invalid department")
             
         new_id = connection.execute(
             sqlalchemy.text(
@@ -240,8 +226,8 @@ async def attach_courses_to_professor(
         
         if len(courses) != len(course_codes):
             raise HTTPException(
-                status_code=400,
-                detail="One or more course codes are invalid"
+                status_code=404,
+                detail="One or more course codes could not be found"
             )
             
         # add the associations
@@ -262,7 +248,7 @@ async def attach_courses_to_professor(
                 )
             except sqlalchemy.exc.IntegrityError:
                 raise HTTPException(
-                    status_code=400,
+                    status_code=409,
                     detail=f"Invalid association between professor '{professor_name}' and course {course.course_code}"
                 )
                 

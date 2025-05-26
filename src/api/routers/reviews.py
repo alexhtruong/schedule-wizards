@@ -34,7 +34,7 @@ async def create_review(review: ReviewCreate):
 
         if not course_and_prof:
             raise HTTPException(
-                status_code=400,
+                status_code=404,
                 detail=f"Professor {review.professor_name} is not assigned to course {review.course_code}"
             )
             
