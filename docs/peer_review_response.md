@@ -17,3 +17,11 @@ Response: Fixed status codes to follow convention
 Issue: Get_professor_details - In the reviews_result query, professor id is fetched. This is unnecessary as professor id is already known from prof_result
 
 Response: removed unnecessary query
+
+Issue: Create_professor - duplicate professors can be created if executed concurrently. If there’s a database constraint on name, the case with conflict isn’t necessarily handled gracefully by this route.
+
+Response: added try/catch block for potential duplication
+
+Issue: Create_review- - you update statistics columns on every call to this route. This keeps these entries accurate, but makes create_review more complicated and slower. An alternative would be to update these columns on an interval – eg once per day – using scheduled jobs.
+
+Response: Set up a cron job running daily that hits a newly made endpoint specifically for updating prof and course statistics 

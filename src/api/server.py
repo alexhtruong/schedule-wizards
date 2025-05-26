@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from src.api.routers import courses, professors, reviews, departments, schools
+from src.api.routers import courses, professors, reviews, departments, schools, stats
 
 app = FastAPI(
     title="Schedule Wizards",
@@ -24,6 +24,7 @@ app.include_router(professors.router)
 app.include_router(reviews.router)
 app.include_router(departments.router)
 app.include_router(schools.router)
+app.include_router(stats.router)
 
 @app.get("/")
 async def root():

@@ -168,33 +168,38 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
 @router.post("/")
 async def create_professor(professor: NewProfessor):
     """Create a new professor."""
-    # first check if department exists    
-    with db.engine.begin() as connection:
-        dept_id = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT id FROM department WHERE abbrev = :dept
-                """    
-            ), {'dept': professor.department}).scalar()
-        if not dept_id:
-            raise HTTPException(status_code=404, detail="Invalid department")
+    # first check if department exists
+    try:    
+        with db.engine.begin() as connection:
+            dept_id = connection.execute(
+                sqlalchemy.text(
+                    """
+                    SELECT id FROM department WHERE abbrev = :dept
+                    """    
+                ), {'dept': professor.department}).scalar()
+            if not dept_id:
+                raise HTTPException(status_code=404, detail="Invalid department")
+                
+            new_id = connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO professor (name, department_id) 
+                    VALUES (:name, :dept_id) 
+                    RETURNING id
+                    """
+                ),
+                {
+                    'name': professor.name,
+                    'dept_id': dept_id
+                }
+            ).scalar()
             
-        new_id = connection.execute(
-            sqlalchemy.text(
-                """
-                INSERT INTO professor (name, department_id) 
-                VALUES (:name, :dept_id) 
-                RETURNING id
-                """
-            ),
-            {
-                'name': professor.name,
-                'dept_id': dept_id
-            }
-        ).scalar()
-        
-        return {"id": str(new_id), "message": "Professor created successfully"}
-
+            return {"id": str(new_id), "message": "Professor created successfully"}
+    except sqlalchemy.exc.IntegrityError as e:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Professor with name '{professor.name}' already exists"
+        )
 @router.post("/{professor_name}/courses")
 async def attach_courses_to_professor(
     professor_name: str,
