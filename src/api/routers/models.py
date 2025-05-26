@@ -48,6 +48,11 @@ class DepartmentCreate(BaseModel):
     abbrev: str
     school_id: int
 
+class DepartmentLite(BaseModel):
+    department_id: int
+    name: str
+    abbrev: str
+
 class ReviewCreate(BaseModel):
     course_code: str  # e.g. "ME101", "CSC101"
     professor_name: str  # e.g. "Prof. Smith"
