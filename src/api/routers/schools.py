@@ -1,28 +1,9 @@
-from ssl import CHANNEL_BINDING_TYPES
-from unittest.util import strclass
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
 import sqlalchemy
-from src.api.routers.courses import Course
-from src.api.routers.reviews import Review
 from src import database as db
+from src.api.routers.models import SchoolCreate
 
 router = APIRouter(prefix="/schools", tags=["schools"])
-
-class School(BaseModel):
-    id: int
-    name: str
-    city: str
-    state: str
-    country: str
-
-class SchoolCreate(BaseModel):
-    name: str
-    city: str
-    state: str
-    country: str
-
 
 @router.post("/")
 async def create_school(school: SchoolCreate):

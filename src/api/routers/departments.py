@@ -1,22 +1,9 @@
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException
 import sqlalchemy
-from src.api.routers.models import Course, Professor
 from src import database as db
+from src.api.routers.models import DepartmentCreate
 
 router = APIRouter(prefix="/departments", tags=["departments"])
-
-class Department(BaseModel):
-    department_id: int
-    name: str
-    abbrev: str
-    school_id: int
-
-class DepartmentCreate(BaseModel):
-    name: str
-    abbrev: str
-    school_id: int
 
 
 @router.post("/")

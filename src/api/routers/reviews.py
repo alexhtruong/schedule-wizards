@@ -1,49 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
+from pydantic import BaseModel, Field
 import sqlalchemy
-from src.api.routers.models import Course
+from src.api.routers.models import ReviewCreate
 from src import database as db
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
-
-class Professor(BaseModel):
-    id: str
-    name: str
-    department: str
-    num_reviews: int
-
-class Course(BaseModel):
-    course_id: int
-    name: str
-    department: str
-    professors: List[Professor]
-
-class Review(BaseModel):
-    review_id: int
-    course: Course
-    term: str
-    difficulty_rating: int
-    overall_rating: int
-    workload_estimate: int
-    tags: List[str]
-    comments: str
-
-class ReviewCreate(BaseModel):
-    course_code: str  # e.g. "ME101", "CSC101"
-    professor_name: str  # e.g. "Prof. Smith"
-    term: str  # e.g. "Spring 2025"
-    difficulty_rating: int = Field(ge=1, le=5)
-    overall_rating: int = Field(ge=1, le=5)
-    workload_estimate: int = Field(ge=0, le=168)  # max hours per week
-    tags: List[str]  
-    comments: str = Field(min_length=10)
-
-    @field_validator('comments')
-    def validate_comments(cls, v):
-        if len(v.split()) < 5: 
-            raise ValueError('Comments must be at least 5 words')
-        return v
 
 class ReportCreate(BaseModel):
     reason: str = Field(min_length=10)

@@ -1,23 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import sqlalchemy
-from src.api.routers.models import Course, Professor
-from src.api.routers.reviews import Review
+from src.api.routers.models import Professor, Review
 from src import database as db
-from collections import defaultdict
 
 router = APIRouter(prefix="/professors", tags=["professors"])
-
-class Review(BaseModel):
-    review_id: int
-    course: Course
-    term: str
-    difficulty_rating: int
-    overall_rating: int
-    workload_estimate: int
-    tags: List[str]
-    comments: str
 
 class ProfessorDetails(BaseModel):
     professor: Professor
