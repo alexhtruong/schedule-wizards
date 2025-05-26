@@ -77,5 +77,17 @@ class SchoolCreate(BaseModel):
     state: str
     country: str
 
+class ProfessorDetails(BaseModel):
+    professor: Professor
+    reviews: List[Review]
+    average_difficulty: float
+    average_workload: float
+    most_common_tags: List[str]
+
+class NewProfessor(BaseModel):
+    name: str
+    department: str
+    metadata: dict = {}
+
 Professor.model_rebuild()
 Course.model_rebuild()
