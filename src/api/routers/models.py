@@ -134,7 +134,7 @@ class CourseCreate(BaseModel):
     department: str = Field(
         min_length=2, 
         max_length=50,
-        example="Computer Science"
+        example="CSC"
     )
 
     @field_validator('course_code')

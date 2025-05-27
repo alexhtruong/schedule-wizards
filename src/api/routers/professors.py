@@ -173,9 +173,27 @@ async def create_professor(professor: NewProfessor):
                     SELECT id FROM department WHERE abbrev = :dept
                     """    
                 ), {'dept': professor.department}).scalar()
+            
             if not dept_id:
                 raise HTTPException(status_code=404, detail="Invalid department")
-                
+            
+            prof_exists = connection.execute(
+                sqlalchemy.text(
+                    """
+                    SELECT 1
+                    FROM professor
+                    WHERE name = :name AND department_id = :dept_id
+                    """
+                ),
+                {"dept_id": dept_id.id}
+            ).first()
+
+            if prof_exists:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Professor {professor.name} in department {professor.department} already exists"
+                )
+
             new_id = connection.execute(
                 sqlalchemy.text(
                     """
@@ -234,12 +252,30 @@ async def attach_courses_to_professor(
         # add the associations
         for course in courses:
             try:
+                course_is_attached = connection.execute(
+                    sqlalchemy.text(
+                        """
+                        SELECT 1 
+                        FROM professors_courses 
+                        WHERE professor_id = :prof_id 
+                        AND course_id = :course_id
+                        """
+                    ),
+                    {
+                        "prof_id": professor.id,
+                        "course_id": course.id
+                    }
+                ).first()
+
+                if course_is_attached:
+                    print(f"Course {course.course_code} is already attached to professor {professor_name}, skipping...")
+                    continue
+
                 connection.execute(
                     sqlalchemy.text(
                         """
                         INSERT INTO professors_courses (professor_id, course_id)
                         VALUES (:prof_id, :course_id)
-                        ON CONFLICT DO NOTHING
                         """
                     ),
                     {
@@ -248,12 +284,10 @@ async def attach_courses_to_professor(
                     }
                 )
             except sqlalchemy.exc.IntegrityError:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Invalid association between professor '{professor_name}' and course {course.course_code}"
-                )
-                
-        return {"message": f"Successfully attached {len(course_codes)} courses to professor '{professor_name}'"}
+                print(f"Failed to attach course {course.course_code} to professor {professor_name}")
+                continue
+
+        return {"message": f"Finished processing {len(course_codes)} courses for professor '{professor_name}'"}
 
 @router.get("/search/by-tags")
 async def search_professors_by_tags(tags: List[str] = Query(None, description="List of tags to search for")) -> List[Professor]:

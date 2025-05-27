@@ -247,6 +247,23 @@ async def create_course(course: CourseCreate):
                     status_code=404,
                     detail=f"Department {course.department} does not exist"
                 )
+            
+            course_exists = connection.execute(
+                sqlalchemy.text(
+                    """
+                    SELECT id
+                    FROM courses c
+                    WHERE course_code = :course_code
+                    """
+                ),
+                {"course_code": course.course_code}
+            ).first()
+
+            if course_exists:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Course {course.course_code} already exists"
+                )
                 
             # create course
             course_id = connection.execute(
