@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List
 import sqlalchemy
@@ -254,3 +254,67 @@ async def attach_courses_to_professor(
                 )
                 
         return {"message": f"Successfully attached {len(course_codes)} courses to professor '{professor_name}'"}
+
+@router.get("/search/by-tags")
+async def search_professors_by_tags(tags: List[str] = Query(None, description="List of tags to search for")) -> List[Professor]:
+    """
+    Search for professors based on review tags.
+    Returns professors who have reviews with ANY of the specified tags.
+    """
+    if not tags:
+        raise HTTPException(status_code=400, detail="At least one tag must be provided")
+        
+    with db.engine.begin() as connection:
+        result = connection.execute(
+            sqlalchemy.text(
+                """
+                WITH tag_matches AS (
+                    SELECT 
+                        p.id,
+                        p.name,
+                        d.abbrev as department,
+                        COUNT(DISTINCT t.name) as matching_tags,
+                        COUNT(*) as tag_frequency,
+                        p.total_reviews
+                    FROM professor p
+                    JOIN department d ON p.department_id = d.id
+                    JOIN professors_courses pc ON p.id = pc.professor_id
+                    JOIN review r ON r.course_id = pc.course_id
+                    JOIN review_tags rt ON r.id = rt.review_id
+                    JOIN tag t ON rt.tag_id = t.id
+                    WHERE t.name = ANY(:tags)
+                    GROUP BY p.id, p.name, d.abbrev, p.total_reviews
+                    ORDER BY matching_tags DESC, tag_frequency DESC
+                    LIMIT 20
+                )
+                SELECT 
+                    tm.*,
+                    array_agg(DISTINCT t.name) as matched_tags
+                FROM tag_matches tm
+                JOIN professors_courses pc ON tm.id = pc.professor_id
+                JOIN review r ON r.course_id = pc.course_id
+                JOIN review_tags rt ON r.id = rt.review_id
+                JOIN tag t ON rt.tag_id = t.id
+                WHERE t.name = ANY(:tags)
+                GROUP BY tm.id, tm.name, tm.department, tm.matching_tags, tm.tag_frequency, tm.total_reviews
+                """
+            ),
+            {"tags": tags}
+        ).all()
+        
+        if not result:
+            return []
+            
+        professors = []
+        for row in result:
+            professors.append(
+                Professor(
+                    id=str(row.id),
+                    name=row.name,
+                    department=row.department,
+                    num_reviews=row.total_reviews or 0,
+                    courses=[] 
+                )
+            )
+            
+        return professors

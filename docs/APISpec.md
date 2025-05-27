@@ -2,6 +2,114 @@
 
 ## Endpoints
 
+## Two Complex Endpoints
+
+### Professor Search
+
+#### `/professors/search/by-tags` (GET)
+
+Search for professors based on review tags and get detailed matching information.
+
+**Query Parameters**:
+
+- `tags` (required): List of tags to search for (e.g. ["Clear Explanations", "Engaging"])
+
+**Used for**:
+
+- Finding professors by teaching style/characteristics
+- Discovering professors based on student feedback
+- Getting tag frequency statistics for professors
+
+**Response**:
+
+```json
+[
+  {
+    "professor": {
+      "id": "prof123",
+      "name": "Jane Doe",
+      "department": "CSC",
+      "num_reviews": 15,
+      "courses": []
+    },
+    "matched_tags": ["Clear Explanations", "Engaging"],
+    "matching_tag_count": 2,
+    "tag_frequency": 25
+  },
+  {
+    "professor": {
+      "id": "prof456",
+      "name": "John Smith",
+      "department": "MATH",
+      "num_reviews": 8,
+      "courses": []
+    },
+    "matched_tags": ["Clear Explanations"],
+    "matching_tag_count": 1,
+    "tag_frequency": 12
+  }
+]
+```
+
+**Notes**:
+
+- Results are ordered by:
+  1. Number of matching tags (descending)
+  2. Tag frequency in reviews (descending)
+- Tag matching is case-sensitive
+- Course lists are omitted from professor objects for performance
+
+### Department Statistics
+
+#### `/departments/{department_abbrev}/statistics` (GET)
+
+Get comprehensive statistics for a department including course counts, professor counts, and aggregated review metrics.
+
+**Parameters**:
+
+- `department_abbrev`: Department abbreviation (e.g., "CSC", "ME")
+
+**Used for**:
+
+- Getting department-wide analytics
+- Comparing departments
+- Understanding overall department performance and student sentiment
+
+**Response**:
+
+```json
+{
+  "department": {
+    "department_id": 1,
+    "name": "Computer Science",
+    "abbrev": "CSC",
+    "school_id": 1
+  },
+  "total_courses": 45,
+  "total_professors": 12,
+  "average_difficulty": 3.8,
+  "average_workload": 12.5,
+  "average_rating": 4.2,
+  "total_reviews": 324,
+  "most_common_tags": [
+    "Programming Heavy",
+    "Project Based",
+    "Challenging",
+    "Good TAs",
+    "Math Heavy"
+  ]
+}
+```
+
+**Notes**:
+
+- All average ratings are on a scale of 1-5
+- Workload is measured in hours per week
+- Tags are ordered by frequency (most frequent first)
+- Returns 0 for numerical values when no data is available
+
+
+
 ### Search and Retrieval
 
 #### `/search/class/{course_id}` (GET)
@@ -170,28 +278,5 @@ Submit a new review.
   "workload_estimate": number,
   "tags": string[],
   "comments": "string"
-}
-```
-
-### Moderation
-
-#### `/reviews/:id/report` (POST)
-
-Report a review for moderation.
-
-**Request Body**:
-
-```json
-{
-  "reason": "string",
-  "details": "string"
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Review has been reported and will be reviewed by moderators."
 }
 ```

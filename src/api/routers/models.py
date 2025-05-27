@@ -212,5 +212,46 @@ class NewProfessor(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     department: str = Field(min_length=2, max_length=50)
 
+class ProfessorSearchResult(BaseModel):
+    professor: Professor
+    matched_tags: List[str] = Field(
+        description="Tags that matched the search criteria",
+        max_length=10,  # Consistent with ReviewCreate max tags
+        example=["Clear Explanations", "Engaging"]
+    )
+    matching_tag_count: int = Field(
+        ge=1,
+        description="Number of unique tags that matched the search criteria",
+        example=2
+    )
+    tag_frequency: int = Field(
+        ge=1,
+        description="Total number of times the matched tags appear in the professor's reviews",
+        example=15
+    )
+
+    @field_validator('matched_tags')
+    def validate_tags(cls, v):
+        if not v:
+            raise ValueError('Matched tags cannot be empty')
+        if not all(2 <= len(tag) <= 30 for tag in v):
+            raise ValueError('Each tag must be between 2 and 30 characters')
+        return v
+
+    @field_validator('matching_tag_count')
+    def validate_tag_count(cls, v, values):
+        if 'matched_tags' in values.data and v != len(values.data['matched_tags']):
+            raise ValueError('matching_tag_count must equal the number of matched_tags')
+
+class DepartmentStatistics(BaseModel):
+    department: Department
+    total_courses: int = Field(ge=0, description="Total number of courses offered by the department")
+    total_professors: int = Field(ge=0, description="Total number of professors in the department")
+    average_difficulty: float = Field(ge=0, le=5, description="Average difficulty rating across all courses")
+    average_workload: float = Field(ge=0, le=168, description="Average weekly workload hours across all courses")
+    average_rating: float = Field(ge=0, le=5, description="Average overall rating across all courses")
+    total_reviews: int = Field(ge=0, description="Total number of reviews across all courses")
+    most_common_tags: List[str] = Field(max_length=10, description="Most frequent tags in department reviews")
+
 Professor.model_rebuild()
 Course.model_rebuild()
