@@ -11,9 +11,16 @@ class Professor(BaseModel):
 
 class Course(BaseModel):
     course_id: int
+    course_code: str | None = Field(default=None, min_length=5, max_length=10)
     name: str = Field(min_length=3, max_length=200)
     department: str = Field(min_length=2, max_length=50)
     professors: List["Professor"] = []
+
+    @field_validator('course_code')
+    def validate_course_code(cls, v):
+        if not re.match(r'^[A-Z]{2,4}[0-9]{3,4}[A-Z]?$', v):
+            raise ValueError('Course code must be in format like "CSC101" or "ME301A"')
+        return v
 
 class Review(BaseModel):
     review_id: int
@@ -41,14 +48,42 @@ class Review(BaseModel):
         return v
     
 class ReviewCreate(BaseModel):
-    course_code: str  # e.g. "ME101", "CSC101"
-    professor_name: str  # e.g. "Prof. Smith"
-    term: str = Field(min_length=3, max_length=20)
-    difficulty_rating: int = Field(ge=1, le=5)
-    overall_rating: int = Field(ge=1, le=5)
-    workload_estimate: int = Field(ge=0, le=168)  # max hours per week
-    tags: List[str]  
-    comments: str = Field(min_length=10)
+    course_code: str = Field(
+        min_length=5, 
+        max_length=10,
+        example="CSC101"
+    )
+    professor_name: str = Field(
+        example="Prof. John Smith"
+    )
+    term: str = Field(
+        min_length=3, 
+        max_length=20,
+        example="Spring 2025"
+    )
+    difficulty_rating: int = Field(
+        ge=1, 
+        le=5,
+        example=4
+    )
+    overall_rating: int = Field(
+        ge=1, 
+        le=5,
+        example=5
+    )
+    workload_estimate: int = Field(
+        ge=0, 
+        le=168,
+        example=10,
+        description="Hours per week spent on coursework"
+    )
+    tags: List[str] = Field(
+        example=["Engaging", "Heavy Reading", "Group Projects"]
+    )
+    comments: str = Field(
+        min_length=10,
+        example="Great introductory course! The professor was very helpful and the material was interesting."
+    )
 
     @field_validator('term')
     def validate_term(cls, v):
@@ -84,12 +119,23 @@ class CourseAggregates(BaseModel):
     average_difficulty: float = Field(ge=0, le=5)
     average_workload: float = Field(ge=0, le=168)
     total_reviews: int = Field(ge=0)
-    top_tags: List[str] = Field(max_length=20)
 
 class CourseCreate(BaseModel):
-    course_code: str = Field(min_length=5, max_length=10)
-    name: str = Field(min_length=3, max_length=200)
-    department: str = Field(min_length=2, max_length=50)
+    course_code: str = Field(
+        min_length=5, 
+        max_length=10,
+        example="CSC101"
+    )
+    name: str = Field(
+        min_length=3, 
+        max_length=200,
+        example="Introduction to Computer Science"
+    )
+    department: str = Field(
+        min_length=2, 
+        max_length=50,
+        example="Computer Science"
+    )
 
     @field_validator('course_code')
     def validate_course_code(cls, v):
@@ -98,21 +144,10 @@ class CourseCreate(BaseModel):
         return v
 
 class Department(BaseModel):
-    department_id: int
-    name: str = Field(min_length=2, max_length=100)
-    abbrev: str = Field(min_length=2, max_length=10)
-    school_id: int = Field(ge=1)
-
-    @field_validator('abbrev')
-    def validate_abbrev(cls, v):
-        if not v.isupper():
-            raise ValueError('Department abbreviation must be uppercase')
-        return v
-    
-class DepartmentLite(BaseModel):
     department_id: int = Field(gt=0)
     name: str = Field(min_length=2, max_length=100)
     abbrev: str = Field(min_length=2, max_length=10)
+    school_id: int | None = Field(default=None, ge=1)
 
     @field_validator('name')
     def validate_name(cls, v):
@@ -131,9 +166,20 @@ class DepartmentLite(BaseModel):
         return v
 
 class DepartmentCreate(BaseModel):
-    name: str = Field(min_length=2, max_length=100)
-    abbrev: str = Field(min_length=2, max_length=10)
-    school_id: int = Field(ge=1)
+    name: str = Field(
+        min_length=2, 
+        max_length=100,
+        example="Computer Science"
+    )
+    abbrev: str = Field(
+        min_length=2, 
+        max_length=10,
+        example="CSC"
+    )
+    school_id: int = Field(
+        ge=1,
+        example=1
+    )
 
     @field_validator('abbrev')
     def validate_abbrev(cls, v):
@@ -159,12 +205,12 @@ class ProfessorDetails(BaseModel):
     reviews: List[Review]
     average_difficulty: float = Field(ge=0, le=5)
     average_workload: float = Field(ge=0, le=168)
+    average_rating: float = Field(ge=0, le=5)
     most_common_tags: List[str] = Field(max_length=20)
 
 class NewProfessor(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     department: str = Field(min_length=2, max_length=50)
-    metadata: dict = Field(default_factory=dict)
 
 Professor.model_rebuild()
 Course.model_rebuild()

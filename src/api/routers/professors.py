@@ -22,7 +22,8 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     d.abbrev as department,
                     p.total_reviews,
                     p.avg_difficulty,
-                    p.avg_workload
+                    p.avg_workload,
+                    p.avg_rating
                 FROM professor p
                 JOIN department d ON p.department_id = d.id
                 WHERE p.name = :prof_name
@@ -82,13 +83,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     WHERE p.name = :prof_name 
             """
             ), {"prof_name": professor_name}
-        )
-
-        if not reviews_result:
-            raise HTTPException(
-                status_code=404,
-                detail="Professor currently doesn't have reviews"
-            )
+        ).all()
 
         
         tags_result = connection.execute(
@@ -162,6 +157,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
             reviews=reviews,
             average_difficulty=float(prof_result.avg_difficulty or 0),
             average_workload=float(prof_result.avg_workload or 0),
+            average_rating=float(prof_result.avg_rating or 0),
             most_common_tags=tags
         )
 

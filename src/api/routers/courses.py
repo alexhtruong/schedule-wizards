@@ -31,6 +31,7 @@ async def list_courses(
         d.abbrev AS department,
         c.id AS course_id,
         c.name AS name,
+        c.course_code,
         p.id AS prof_id,
         p.name AS prof_name,
         p.total_reviews AS num_reviews
@@ -67,6 +68,7 @@ async def list_courses(
         if row.course_id not in courses_dict:
             courses_dict[row.course_id] = Course(
                 course_id=row.course_id,
+                course_code=row.course_code,
                 name=row.name,
                 department=row.department,
                 professors=[]
@@ -94,6 +96,7 @@ async def get_course(course_code: str) -> Course:
                 SELECT
                     c.id as course_id,
                     c.name,
+                    c.course_code,
                     d.abbrev as department,
                     p.id as prof_id,
                     p.name as prof_name,
@@ -117,6 +120,7 @@ async def get_course(course_code: str) -> Course:
             if row.course_id not in courses_dict:
                 courses_dict[row.course_id] = Course(
                     course_id=row.course_id,
+                    course_code=row.course_code,
                     name=row.name,
                     department=row.department,
                     professors=[]
@@ -218,79 +222,70 @@ async def get_course_aggregates(course_code: str) -> CourseAggregates:
             ),
             {"course_id": course.id}
         ).first()
-        
-        tags_query = """
-            SELECT t.name AS tag_name
-            FROM review r
-            JOIN review_tags rt ON r.id = rt.review_id
-            JOIN tag t ON rt.tag_id = t.id
-            WHERE r.course_id = :course_id
-            GROUP BY t.name
-            ORDER BY COUNT(*) DESC
-            LIMIT 5
-        """
-        tags = [row.tag_name for row in connection.execute(
-            sqlalchemy.text(tags_query),
-            {"course_id": course.id}).all()
-        ]
     
         
     return CourseAggregates(
-        average_rating=float(result.avg_rating or 0),
-        average_difficulty=float(result.avg_difficulty or 0),
-        average_workload=float(result.avg_workload or 0),
+        average_rating=round(result.avg_rating or 0, 1),
+        average_difficulty=round(result.avg_difficulty or 0, 1),
+        average_workload=round(result.avg_workload or 0, 1),
         total_reviews=result.total_reviews or 0,
-        top_tags=tags
     )
 
 @router.post("/", status_code=201, response_model=Course)
 async def create_course(course: CourseCreate):
     with db.engine.begin() as connection:
-        dept = connection.execute(
-            sqlalchemy.text(
-                "SELECT id FROM department WHERE abbrev = :dept"
-            ),
-            {"dept": course.department}
-        ).first()
-        
-        if not dept:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Department {course.department} does not exist"
+        try:
+            dept = connection.execute(
+                sqlalchemy.text(
+                    "SELECT id FROM department WHERE abbrev = :dept"
+                ),
+                {"dept": course.department}
+            ).first()
+            
+            if not dept:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Department {course.department} does not exist"
+                )
+                
+            # create course
+            course_id = connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO course (course_code, name)
+                    VALUES (:course_code, :name)
+                    RETURNING id
+                    """
+                ),
+                {
+                    "course_code": course.course_code.upper(),
+                    "name": course.name,
+                }
+            ).scalar_one()
+            
+            # link course to department
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO department_courses (department_id, course_id)
+                    VALUES (:dept_id, :course_id)
+                    """
+                ),
+                {
+                    "dept_id": dept.id,
+                    "course_id": course_id
+                }
             )
             
-        # create course
-        course_id = connection.execute(
-            sqlalchemy.text(
-                """
-                INSERT INTO course (course_code, name)
-                VALUES (:course_code, :name)
-                RETURNING id
-                """
-            ),
-            {
-                "course_code": course.course_code.upper(),
-                "name": course.name,
-            }
-        ).scalar_one()
-        
-        # link course to department
-        connection.execute(
-            sqlalchemy.text(
-                """
-                INSERT INTO department_courses (department_id, course_id)
-                VALUES (:dept_id, :course_id)
-                """
-            ),
-            {
-                "dept_id": dept.id,
-                "course_id": course_id
-            }
-        )
-        
-        return Course(
-            course_id=course_id,
-            name=course.name,
-            department=course.department,
-            professors=[]
-        )
+            return Course(
+                course_id=course_id,
+                course_code=course.course_code,
+                name=course.name,
+                department=course.department,
+                professors=[]
+            )
+        except sqlalchemy.exc.IntegrityError as e:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Course {course.course_code} has already been created"
+            )
