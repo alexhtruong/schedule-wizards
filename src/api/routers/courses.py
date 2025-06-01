@@ -164,8 +164,8 @@ async def get_course_professors(course_code: str) -> List[Professor]:
                 FROM course c
                 JOIN department_courses dc ON c.id = dc.course_id
                 JOIN department d ON dc.department_id = d.id
-                JOIN professors_courses pc ON c.id = pc.course_id
-                JOIN professor p ON pc.professor_id = p.id
+                LEFT JOIN professors_courses pc ON c.id = pc.course_id
+                LEFT JOIN professor p ON pc.professor_id = p.id
                 WHERE c.course_code = :course_code
                 """
             ),
@@ -174,18 +174,19 @@ async def get_course_professors(course_code: str) -> List[Professor]:
         
     if not result:
         raise HTTPException(status_code=404, detail=f"Course {course_code} not found")
-        
+
     professors = []
     for row in result:
-        professors.append(
-            Professor(
-                id=str(row.prof_id),
-                name=row.prof_name,
-                department=row.department,
-                num_reviews=row.num_reviews or 0,
-                courses=[] 
+        if row.prof_id is not None:
+            professors.append(
+                Professor(
+                    id=str(row.prof_id),
+                    name=row.prof_name,
+                    department=row.department,
+                    num_reviews=row.num_reviews or 0,
+                    courses=[] 
+                )
             )
-        )
             
     return professors
 
@@ -252,7 +253,7 @@ async def create_course(course: CourseCreate):
                 sqlalchemy.text(
                     """
                     SELECT id
-                    FROM courses c
+                    FROM course c
                     WHERE course_code = :course_code
                     """
                 ),
