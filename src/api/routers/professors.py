@@ -9,8 +9,8 @@ router = APIRouter(prefix="/professors", tags=["professors"])
 
 # TODO: allow metadata to be attaching courses to professor
 # TODO: add endpoint for attaching courses to a professor
-@router.get("/{professor_name}")
-async def get_professor_details(professor_name: str) -> ProfessorDetails:
+@router.get("/{professor_id}")
+async def get_professor_details(professor_id: int) -> ProfessorDetails:
     """Get detailed information about a professor including their reviews and courses."""
     with db.engine.begin() as connection:
         prof_result = connection.execute(
@@ -26,12 +26,12 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     p.avg_rating
                 FROM professor p
                 JOIN department d ON p.department_id = d.id
-                WHERE p.name = :prof_name
+                WHERE p.id = :prof_id
                 """
-            ), {"prof_name": professor_name}
+            ), {"prof_id": professor_id}
         ).first()
         if not prof_result:
-            raise HTTPException(status_code=404, detail=f"Professor '{professor_name}' not found")
+            raise HTTPException(status_code=404, detail=f"Professor with id '{professor_id}' not found")
 
         # fetch all courses for this professor
         courses_result = connection.execute(
@@ -47,15 +47,15 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     r.difficulty,
                     r.overall_rating,
                     r.workload_rating,
-                    r.comments,
+                    r.comments
                 FROM review r
                 JOIN course c ON r.course_id = c.id
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN professor p ON pc.professor_id = p.id
                 JOIN department d ON c.department_id = d.id
-                WHERE p.name = :prof_name
+                WHERE p.id = :prof_id
                 """
-            ), {"prof_name": professor_name}
+            ), {"prof_id": professor_id}
         ).all()
 
         reviews_result = connection.execute(
@@ -75,14 +75,14 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
                     tag.name as tag_name
                     FROM review r
                     JOIN course c ON r.course_id = c.id
-                    JOIN professors_courses pc ON c.id = pc.course_id
-                    JOIN professor p ON pc.professor_id = p.id
                     JOIN department d ON c.department_id = d.id
-                    JOIN review_tags ON r.id = review_tags.review_id
-                    JOIN tag ON review_tags.tag_id = tag.id
-                    WHERE p.name = :prof_name 
-            """
-            ), {"prof_name": professor_name}
+                    JOIN professors_courses pc ON pc.course_id = c.id
+                    JOIN professor p ON p.id = pc.professor_id
+                    LEFT JOIN review_tags ON r.id = review_tags.review_id
+                    LEFT JOIN tag ON review_tags.tag_id = tag.id
+                    WHERE pc.professor_id = :prof_id
+                """
+            ), {"prof_id": professor_id}
         ).all()
 
         
@@ -163,7 +163,7 @@ async def get_professor_details(professor_name: str) -> ProfessorDetails:
 
 @router.post("/")
 async def create_professor(professor: NewProfessor):
-    """Create a new professor."""
+    """Create a new professor using apartment abbreviation."""
     # first check if department exists
     try:    
         with db.engine.begin() as connection:
@@ -185,7 +185,8 @@ async def create_professor(professor: NewProfessor):
                     WHERE name = :name AND department_id = :dept_id
                     """
                 ),
-                {"dept_id": dept_id.id}
+                {"dept_id": dept_id,
+                 "name": professor.name}
             ).first()
 
             if prof_exists:
