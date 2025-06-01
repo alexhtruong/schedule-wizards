@@ -51,40 +51,20 @@ async def create_department(department: DepartmentCreate):
             ) from e
 
 @router.get("/")
-async def list_departments(school_id: int, limit: int = 10, offset: int = 0) -> Dict[str, Any]:
+async def list_departments(limit: int = 10, offset: int = 0) -> Dict[str, Any]:
     """List all departments at a school."""
     with db.engine.begin() as connection:
-        existing_school = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT 1
-                FROM school
-                WHERE school.id = :id
-                """
-                ),
-            {
-                "id": school_id
-            }
-            ).first()
-
-        if existing_school is None:
-            raise HTTPException(
-                status_code=404,
-                detail="school does not exist!"
-            )
         
         departments = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT id, name, abbrev
                 FROM department
-                WHERE department.school_id = :school_id
                 LIMIT :limit
                 OFFSET :offset
                 """
             ),
             {
-                "school_id": school_id,
                 "limit": limit,
                 "offset": offset
             }
@@ -92,9 +72,8 @@ async def list_departments(school_id: int, limit: int = 10, offset: int = 0) -> 
 
         total_result = connection.execute(
             sqlalchemy.text(
-                "SELECT COUNT(*) FROM department WHERE school_id = :school_id"
-            ),
-            {"school_id": school_id}
+                "SELECT COUNT(*) FROM department"
+            )
         ).scalar_one()
         
         departments_list = []
