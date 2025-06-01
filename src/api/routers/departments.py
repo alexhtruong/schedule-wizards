@@ -58,7 +58,7 @@ async def list_departments(limit: int = 10, offset: int = 0) -> Dict[str, Any]:
         departments = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT id, name, abbrev
+                SELECT id, name, abbrev, school_id
                 FROM department
                 LIMIT :limit
                 OFFSET :offset
@@ -82,7 +82,8 @@ async def list_departments(limit: int = 10, offset: int = 0) -> Dict[str, Any]:
             Id = row.id
             Name = row.name
             Abbreviation = row.abbrev
-            departments_list.append(Department(department_id = Id, name = Name, abbrev=Abbreviation))
+            School_id = row.school_id
+            departments_list.append(Department(department_id = Id, name = Name, abbrev=Abbreviation, school_id = School_id))
 
         return {
             "total": total_result,
