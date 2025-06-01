@@ -198,8 +198,8 @@ async def create_professor(professor: NewProfessor):
             new_id = connection.execute(
                 sqlalchemy.text(
                     """
-                    INSERT INTO professor (name, department_id) 
-                    VALUES (:name, :dept_id) 
+                    INSERT INTO professor (name, department_id, total_reviews) 
+                    VALUES (:name, :dept_id, 0) 
                     RETURNING id
                     """
                 ),
@@ -215,19 +215,19 @@ async def create_professor(professor: NewProfessor):
             status_code=409,
             detail=f"Professor with name '{professor.name}' already exists"
         )
-@router.post("/{professor_name}/courses")
+@router.post("/{professor_id}/courses")
 async def attach_courses_to_professor(
-    professor_name: str,
+    professor_id: int,
     course_codes: List[str]
 ) -> dict:
-    """Attach courses to a professor by name. Course codes should be in the format 'ME101', 'CSC101', etc."""
+    """Attach courses to a professor by id. Course codes should be in the format 'ME101', 'CSC101', etc."""
     with db.engine.begin() as connection:
         # first verify the professor exists
         professor = connection.execute(
             sqlalchemy.text(
-                "SELECT id FROM professor WHERE name = :prof_name"
+                "SELECT 1 FROM professor WHERE id = :prof_id"
             ),
-            {"prof_name": professor_name}
+            {"prof_id": professor_id}
         ).first()
         
         if not professor:
@@ -263,13 +263,13 @@ async def attach_courses_to_professor(
                         """
                     ),
                     {
-                        "prof_id": professor.id,
+                        "prof_id": professor_id,
                         "course_id": course.id
                     }
                 ).first()
 
                 if course_is_attached:
-                    print(f"Course {course.course_code} is already attached to professor {professor_name}, skipping...")
+                    print(f"Course {course.course_code} is already attached to professor {professor_id}, skipping...")
                     continue
 
                 connection.execute(
@@ -280,15 +280,15 @@ async def attach_courses_to_professor(
                         """
                     ),
                     {
-                        "prof_id": professor.id,
+                        "prof_id": professor_id,
                         "course_id": course.id
                     }
                 )
             except sqlalchemy.exc.IntegrityError:
-                print(f"Failed to attach course {course.course_code} to professor {professor_name}")
+                print(f"Failed to attach course {course.course_code} to professor with id {professor_id}")
                 continue
 
-        return {"message": f"Finished processing {len(course_codes)} courses for professor '{professor_name}'"}
+        return {"message": f"Finished processing {len(course_codes)} courses for professor with id '{professor_id}'"}
 
 @router.get("/search/by-tags")
 async def search_professors_by_tags(tags: List[str] = Query(None, description="List of tags to search for")) -> List[Professor]:

@@ -6,7 +6,7 @@ class Professor(BaseModel):
     id: str
     name: str = Field(min_length=2, max_length=100)
     department: str = Field(min_length=2, max_length=50)
-    num_reviews: int = Field(ge=0)
+    num_reviews: int = Field(0, ge=0)
     courses: List["Course"] = []
 
 class Course(BaseModel):
