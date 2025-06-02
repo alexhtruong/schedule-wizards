@@ -46,6 +46,10 @@ with engine.begin() as conn:
     DROP TABLE IF EXISTS department;
     DROP TABLE IF EXISTS school;
     DROP TABLE IF EXISTS tag;
+    DROP TABLE IF EXISTS department_courses;
+    DROP TABLE IF EXISTS professors_courses;
+    DROP TABLE IF EXISTS review_tags;
+    DROP TABLE IF EXISTS student;
 
     CREATE TABLE
         school (
@@ -103,6 +107,39 @@ with engine.begin() as conn:
             id int generated always as identify not null PRIMARY KEY,
             name text not null
         );
+
+    CREATE TABLE
+        student (
+            id int generated always as identify not null PRIMARY KEY,
+            major text not null,
+            dept_id int,
+            first_name text not null,
+            last_name text not null,
+            email text not null,
+            review_count int
+        );
+
+    CREATE TABLE
+        review_tags (
+            review_id int not null,
+            tag_id int not null
+        );
+
+    CREATE TABLE
+        professors_courses (
+            professor_id int not null,
+            course_id int not null
+        );
+
+    CREATE TABLE
+        department_courses (
+            department_id int not null,
+            course_id int not null
+        );
     """))
 
-    # Populate initial tables: 
+    # Populate initial tables:
+    for tag in tags:
+        conn.execute(sqlalchemy.text(""
+        INSERT INTO
+        ))
