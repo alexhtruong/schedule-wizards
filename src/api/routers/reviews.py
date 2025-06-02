@@ -18,19 +18,19 @@ async def create_review(review: ReviewCreate):
                 JOIN professors_courses pc ON c.id = pc.course_id
                 JOIN professor p ON p.id = pc.professor_id
                 WHERE UPPER(c.course_code) = UPPER(:course_code) 
-                AND p.name = :professor_name
+                AND p.id = :professor_id
                 """
             ),
             {
                 "course_code": review.course_code,
-                "professor_name": review.professor_name
+                "professor_id": review.professor_id
             }
         ).first()
 
         if not course_and_prof:
             raise HTTPException(
                 status_code=404,
-                detail=f"Professor {review.professor_name} is not assigned to course {review.course_code}"
+                detail=f"Professor {review.professor_id} is not assigned to course {review.course_code}"
             )
             
         try:

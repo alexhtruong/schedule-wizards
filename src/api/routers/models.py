@@ -53,8 +53,8 @@ class ReviewCreate(BaseModel):
         max_length=10,
         example="CSC101"
     )
-    professor_name: str = Field(
-        example="Prof. John Smith"
+    professor_id: int = Field(
+        example="10"
     )
     term: str = Field(
         min_length=3, 
