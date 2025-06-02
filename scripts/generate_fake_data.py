@@ -40,11 +40,19 @@ tags = [
 
 with engine.begin() as conn:
     conn.execute(sqlalchemy.text("""
-    DROP TABLE IF EXISTS courses;
-    DROP TABLE IF EXISTS professors
-    DROP TABLE IF EXISTS reviews
-    DROP TABLE IF EXISTS departments;
+    DROP TABLE IF EXISTS course;
+    DROP TABLE IF EXISTS professor;
+    DROP TABLE IF EXISTS review;
+    DROP TABLE IF EXISTS department;
+    DROP TABLE IF EXISTS school;
 
-    
+    CREATE TABLE
+        school (
+            id int generated always as identity not null PRIMARY KEY,
+            name text not null,
+            city text not null,
+            state text not null,
+            country text not null
+        );
 
     """))
