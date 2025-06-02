@@ -45,6 +45,7 @@ with engine.begin() as conn:
     DROP TABLE IF EXISTS review;
     DROP TABLE IF EXISTS department;
     DROP TABLE IF EXISTS school;
+    DROP TABLE IF EXISTS tag;
 
     CREATE TABLE
         school (
@@ -55,4 +56,53 @@ with engine.begin() as conn:
             country text not null
         );
 
+    CREATE TABLE
+        professor (
+            id int generated always as identify not null PRIMARY KEY,
+            name text not null,
+            avg_rating float not null,
+            classes_taught int,
+            department_id int not null,
+            total_reviews int not null,
+            avg_difficulty int not null,
+            avg_workload int not null
+        );
+
+    CREATE TABLE
+        department (
+            id int generated always as identify not null PRIMARY KEY,
+            name text not null,
+            abbrev text not null,
+            school_id int not null
+        );
+
+    CREATE TABLE
+        course (
+            id int generated always as identify not null PRIMARY KEY,
+            course_code text not null,
+            name text not null,
+            avg_workload int not null,
+            avg_rating float not null,
+            department_id int,
+
+        );
+
+    CREATE TABLE
+        review (
+            id int generated always as identify not null PRIMARY KEY,
+            course_id int not null,
+            term text not null,
+            difficulty text not null,
+            overall_rating int not null,
+            workload_rating int not null,
+            comments text not null
+        );
+
+    CREATE TABLE
+        tag (
+            id int generated always as identify not null PRIMARY KEY,
+            name text not null
+        );
     """))
+
+    # Populate initial tables: 
