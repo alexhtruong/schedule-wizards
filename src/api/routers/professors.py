@@ -100,7 +100,7 @@ async def get_professor_details(professor_id: int) -> ProfessorDetails:
                 ORDER BY count DESC
                 LIMIT 10
                 """
-            ), {"prof_id": prof_result.id})
+            ), {"prof_id": professor_id})
         
         courses = [
             {
