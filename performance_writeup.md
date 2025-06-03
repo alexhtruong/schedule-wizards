@@ -53,6 +53,8 @@ GET /professors/search/by-tags
 
 Since GET /departments/{department_abbrev}/statistics was the slowest, here is the explain analyze:
 
+### First Query in Endpoint:
+
 EXPLAIN ANALYZE
 WITH DeptStats AS (
     SELECT 
@@ -152,6 +154,10 @@ GROUP BY ds.id, ds.name, ds.abbrev, ds.school_id, ds.total_courses,
 | Planning Time: 1.842 ms                                                                                                                                                                                                                       |
 | Execution Time: 0.665 ms                                                                                                                                                                                                                      |
 
+So we used CREATE INDEX ON department(abbrev); And re-ran it. 
+It didn't save much time cause there's not many departments to begin with. 
+
+### Second Query in Endpoint:
 
 EXPLAIN analyze
 SELECT t.name, COUNT(*) as tag_count
@@ -208,3 +214,4 @@ LIMIT 10
 | Planning Time: 2.617 ms                                                                                                                                                               |
 | Execution Time: 0.322 ms                                                                                                                                                              |
 
+Again used same indexes. It didn't help as much. 
