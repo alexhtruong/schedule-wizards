@@ -6,6 +6,10 @@
 We knew we wanted some departments, and we wanted about 20-30 courses per department. We wanted to have at least 1-2 professors for all of our courses. 
 Then we wanted the largest emphasis on the reviews. 
 
+Our generation for the data can be found here:
+https://github.com/alexhtruong/schedule-wizards/blob/main/scripts/generate_fake_data.py
+
+
 ### Courses Endpoints:
 
 GET /courses/
@@ -19,7 +23,7 @@ GET /courses/{course_code}/professors
 GET /courses/{course_code}/statistics
 
 ### Professors Endpoints:
-GET /professors/{professor_id} - 3.575 ms
+GET /professors/{professor_id}
 
 POST /professors/
 
@@ -154,7 +158,7 @@ GROUP BY ds.id, ds.name, ds.abbrev, ds.school_id, ds.total_courses,
 | Planning Time: 1.842 ms                                                                                                                                                                                                                       |
 | Execution Time: 0.665 ms                                                                                                                                                                                                                      |
 
-So we used CREATE INDEX ON department(abbrev); And re-ran it. 
+The query is using a lot of nested for-loops So we used CREATE INDEX ON department(abbrev); And re-ran it. 
 It didn't save much time cause there's not many departments to begin with. 
 
 ### Second Query in Endpoint:
