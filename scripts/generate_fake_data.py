@@ -5,19 +5,22 @@ from faker import Faker
 import random
 import numpy as np
 
-dotenv.load_dotenv()
-def database_connection_url():
-    DB_USER = os.environ.get("POSTGRES_USER")
-    DB_PASSWD = os.environ.get("POSTGRES_PASSWORD")
-    DB_SERVER = os.environ.get("POSTGRES_SERVER")
-    DB_PORT = os.environ.get("POSTGRES_PORT")
-    DB_NAME = os.environ.get("POSTGRES_DB")
-    return f"postgresql://{DB_USER}:{DB_PASSWD}@{DB_SERVER}:{DB_PORT}/{DB_NAME}"
+# dotenv.load_dotenv()
+dotenv.load_dotenv(dotenv_path="default.env")
+db_url = os.getenv("POSTGRES_URI")
 
-engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalues=True)
+# def database_connection_url():
+#     DB_USER = os.environ.get("POSTGRES_USER")
+#     DB_PASSWD = os.environ.get("POSTGRES_PASSWORD")
+#     DB_SERVER = os.environ.get("POSTGRES_SERVER")
+#     DB_PORT = os.environ.get("POSTGRES_PORT")
+#     DB_NAME = os.environ.get("POSTGRES_DB")
+#     return f"postgresql://{DB_USER}:{DB_PASSWD}@{DB_SERVER}:{DB_PORT}/{DB_NAME}"
+
+engine = sqlalchemy.create_engine(db_url, use_insertmanyvalues=True)
 fake = Faker()
 num_professors = 500
-num_reviews = 1000000
+num_reviews = 1000
 
 departments = [
     ['Computer Science', 'CSC'],
