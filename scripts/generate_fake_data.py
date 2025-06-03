@@ -7,7 +7,6 @@ import numpy as np
 
 dotenv.load_dotenv()
 def database_connection_url():
-    dotenv.load_dotenv()
     DB_USER = os.environ.get("POSTGRES_USER")
     DB_PASSWD = os.environ.get("POSTGRES_PASSWORD")
     DB_SERVER = os.environ.get("POSTGRES_SERVER")
@@ -19,11 +18,11 @@ engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalue
 fake = Faker()
 
 departments = [
-    'Computer Science',
-    'Computer Engineering',
-    'Ethnic Studies',
-    'Mathematics',
-    'English'
+    ['Computer Science', 'CSC'],
+    ['Computer Engineering', 'CPE'],
+    ['Ethnic Studies', 'ES'],
+    ['Mathematics', 'MAT'],
+    ['English', 'ENG']
 ]
 tags = [
     'compsci',
@@ -63,7 +62,7 @@ with engine.begin() as conn:
 
     CREATE TABLE
         department (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             name text not null,
             abbrev text not null,
             school_id int not null references school(id)
@@ -71,7 +70,7 @@ with engine.begin() as conn:
 
     CREATE TABLE
         professor (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             name text not null,
             avg_rating float not null,
             classes_taught int,
@@ -142,13 +141,26 @@ with engine.begin() as conn:
     # Populate initial tables:
 
     # Insert Cal Poly
-    for school in schools:
-        conn.execute(sqlalchemy.text("""
+    conn.execute(sqlalchemy.text("""
         INSERT INTO school (name, city, state, country)
         VALUES (:name, :city, :state, :country);
     """), {
-        "name": "California Polytechnic University"
+        "name": "California Polytechnic University",
         "city": "San Luis Obispo",
         "state": "California",
         "country": "United States of America"
     })
+
+    school_id = conn.execute(sqlalchemy.text("""
+        SELECT id FROM school WHERE name = :name
+    """), {"name": "California Polytechnic University"}).scalar_one()
+
+    for department in departments:
+        conn.execute(sqlalchemy.text("""
+            INSERT INTO department (name, abbrev, school_id)
+            VALUES (:name, :abbrev, :school_id);
+        """), {
+            "name": department[0],
+            "abbrev": department[1],
+            "school_id": school_id
+        })
