@@ -16,6 +16,7 @@ def database_connection_url():
     return f"postgresql://{DB_USER}:{DB_PASSWD}@{DB_SERVER}:{DB_PORT}/{DB_NAME}"
 
 engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalues=True)
+fake = Faker()
 
 departments = [
     'Computer Science',
@@ -36,13 +37,6 @@ tags = [
     'clear lectures',
     'fair grading',
     'good'
-]
-
-schools = [
-    'California Polytechnic University',
-    'University of Washington',
-    'University of Arizona',
-    'San Jose State University'
 ]
 
 with engine.begin() as conn:
@@ -146,7 +140,15 @@ with engine.begin() as conn:
     """))
 
     # Populate initial tables:
+
+    # Insert Cal Poly
     for school in schools:
         conn.execute(sqlalchemy.text("""
-        INSERT INTO school (name) VALUES (:name);
-        """), {"name": school})
+        INSERT INTO school (name, city, state, country)
+        VALUES (:name, :city, :state, :country);
+    """), {
+        "name": "California Polytechnic University"
+        "city": "San Luis Obispo",
+        "state": "California",
+        "country": "United States of America"
+    })
