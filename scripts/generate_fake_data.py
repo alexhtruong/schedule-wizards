@@ -17,6 +17,8 @@ def database_connection_url():
 engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalues=True)
 fake = Faker()
 num_professors = 500
+num_students = 500
+num_reviews = 249605
 
 departments = [
     ['Computer Science', 'CSC'],
@@ -58,6 +60,8 @@ tags = [
     'fair grading',
     'good'
 ]
+
+review_terms = ['Fall 2023', 'Winter 2024', 'Spring 2024', 'Fall 2024']
 
 with engine.begin() as conn:
     conn.execute(sqlalchemy.text("""
@@ -103,8 +107,7 @@ with engine.begin() as conn:
             dept_id int references department(id),
             first_name text not null,
             last_name text not null,
-            email text not null,
-            review_count int
+            email text not null
         );
 
     CREATE TABLE
@@ -121,7 +124,7 @@ with engine.begin() as conn:
             id int generated always as identity not null PRIMARY KEY,
             course_id int not null references course(id),
             term text not null,
-            difficulty text not null,
+            difficulty int not null,
             overall_rating int not null,
             workload_rating int not null,
             comments text not null
@@ -184,6 +187,7 @@ with engine.begin() as conn:
         SELECT id FROM department
     """)).scalars().all()
 
+    # Insert professors
     for professor in range(num_professors):
         conn.execute(sqlalchemy.text("""
             INSERT INTO professor (name, department_id)
@@ -193,10 +197,11 @@ with engine.begin() as conn:
             "department_id": np.random.choice(department_ids)
         })
 
-    # professor_ids = conn.execute(sqlalchemy.text("""
-    #     SELECT id FROM professor
-    # """)).scalars().all()
+    professor_ids = conn.execute(sqlalchemy.text("""
+        SELECT id FROM professor
+    """)).scalars().all()
 
+    # Insert courses
     for course in courses:
         conn.execute(sqlalchemy.text("""
             INSERT INTO course (course_code, name, department_id)
@@ -205,4 +210,43 @@ with engine.begin() as conn:
             "course_code": course[1],
             "name": course[0],
             "department_id": None
+        })
+
+    course_ids = conn.execute(sqlalchemy.text("""
+        SELECT id FROM course
+    """)).scalars().all()
+
+    for tag in tags:
+        conn.execute(sqlalchemy.text("""
+            INSERT INTO tag (name)
+            VALUES (:name);
+        """), {
+            "name": tag
+        })
+
+    # Insert students
+    for student in range(num_students):
+        conn.execute(sqlalchemy.text("""
+            INSERT INTO student (major, dept_id, first_name, last_name, email)
+            VALUES (:major, :dept_id, :first_name, :last_name, :email);
+        """), {
+            "major": np.random.choice(departments)[0],
+            "dept_id": None,
+            "first_name": fake.first_name(),
+            "last_name": fake.last_name(),
+            "email": fake.email()
+        })
+
+    for review in range(num_reviews):
+        result = conn.execute(sqlalchemy.text("""
+            INSERT INTO review (course_id, term, difficulty, overall_rating, workload_rating, comments)
+            VALUES (:course_id, :term, :difficulty, :overall_rating, :workload_rating, :comments)
+            RETURNING id
+        """), {
+            "course_id": np.random.choice(course_ids),
+            "term": np.random.choice(review_terms),
+            "difficulty": np.random.randint(0,6),
+            "overall_rating": np.random.randint(0,6),
+            "workload_rating": np.random.randint(0,200),
+            "comments": fake.sentence(nb_words=12)
         })
