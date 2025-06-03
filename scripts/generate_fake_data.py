@@ -25,6 +25,26 @@ departments = [
     ['Mathematics', 'MAT'],
     ['English', 'ENG']
 ]
+
+courses = [
+    ['Data Structures', 'CSC202'],
+    ['Fundamentals of Computer Science', "CSC101"],
+    ['Project-Based Object-Oriented Programming and Design', 'CSC203'],
+    ['Discrete Structures', 'CSC248'],
+    ['Introduction to Software Engineering', 'CSC307'],
+    ['Introduction to Computer Security', 'CSC321'],
+    ['Design and Analysis of Algorithms', 'CSC349'],
+    ['Systems Programming', 'CSC357'],
+    ['Introduction to Database Systems', 'CSC365'],
+    ['Introduction to Computer Organization', 'CPE225'],
+    ['Asian American Histroy', 'ES251'],
+    ['Calculus III', 'MAT143'],
+    ['Calculus II', 'MAT142'],
+    ['Calculus I', 'MAT141'],
+    ['Linear Algebra I', 'MAT206'],
+    ['Writing and Rhetoric', 'ENG143']
+]
+
 tags = [
     'compsci',
     'chill',
@@ -171,4 +191,18 @@ with engine.begin() as conn:
         """), {
             "name": fake.name(),
             "department_id": np.random.choice(department_ids)
+        })
+
+    # professor_ids = conn.execute(sqlalchemy.text("""
+    #     SELECT id FROM professor
+    # """)).scalars().all()
+
+    for course in courses:
+        conn.execute(sqlalchemy.text("""
+            INSERT INTO course (course_code, name, department_id)
+            VALUES (:course_code, :name, :department_id);
+        """), {
+            "course_code": course[1],
+            "name": course[0],
+            "department_id": None
         })
