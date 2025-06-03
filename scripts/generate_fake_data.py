@@ -38,6 +38,13 @@ tags = [
     'good'
 ]
 
+schools = [
+    'California Polytechnic University',
+    'University of Washington',
+    'University of Arizona',
+    'San Jose State University'
+]
+
 with engine.begin() as conn:
     conn.execute(sqlalchemy.text("""
     DROP TABLE IF EXISTS course;
@@ -139,7 +146,7 @@ with engine.begin() as conn:
     """))
 
     # Populate initial tables:
-    for tag in tags:
-        conn.execute(sqlalchemy.text(""
-        INSERT INTO
-        ))
+    for school in schools:
+        conn.execute(sqlalchemy.text("""
+        INSERT INTO school (name) VALUES (:name);
+        """), {"name": school})
