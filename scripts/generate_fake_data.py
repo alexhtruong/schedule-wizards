@@ -17,7 +17,6 @@ def database_connection_url():
 engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalues=True)
 fake = Faker()
 num_professors = 500
-num_students = 500
 num_reviews = 249605
 
 departments = [
