@@ -68,23 +68,34 @@ with engine.begin() as conn:
         );
 
     CREATE TABLE
+        department (
+            id int generated always as identify not null PRIMARY KEY,
+            name text not null,
+            abbrev text not null,
+            school_id int not null references school(id)
+        );
+
+    CREATE TABLE
         professor (
             id int generated always as identify not null PRIMARY KEY,
             name text not null,
             avg_rating float not null,
             classes_taught int,
-            department_id int not null,
+            department_id int not null references department(id),
             total_reviews int not null,
             avg_difficulty int not null,
             avg_workload int not null
         );
 
     CREATE TABLE
-        department (
+        student (
             id int generated always as identify not null PRIMARY KEY,
-            name text not null,
-            abbrev text not null,
-            school_id int not null
+            major text not null,
+            dept_id int references department(id),
+            first_name text not null,
+            last_name text not null,
+            email text not null,
+            review_count int
         );
 
     CREATE TABLE
@@ -94,14 +105,14 @@ with engine.begin() as conn:
             name text not null,
             avg_workload int not null,
             avg_rating float not null,
-            department_id int,
+            department_id int references department(id),
 
         );
 
     CREATE TABLE
         review (
             id int generated always as identify not null PRIMARY KEY,
-            course_id int not null,
+            course_id int not null references course(id),
             term text not null,
             difficulty text not null,
             overall_rating int not null,
@@ -116,32 +127,21 @@ with engine.begin() as conn:
         );
 
     CREATE TABLE
-        student (
-            id int generated always as identify not null PRIMARY KEY,
-            major text not null,
-            dept_id int,
-            first_name text not null,
-            last_name text not null,
-            email text not null,
-            review_count int
-        );
-
-    CREATE TABLE
         review_tags (
-            review_id int not null,
-            tag_id int not null
+            review_id int not null references review(id)
+            tag_id int not null references tag(id)
         );
 
     CREATE TABLE
         professors_courses (
-            professor_id int not null,
-            course_id int not null
+            professor_id int not null references professor(id),
+            course_id int not null references course(id)
         );
 
     CREATE TABLE
         department_courses (
-            department_id int not null,
-            course_id int not null
+            department_id int not null references department(id),
+            course_id int not null references course(id)
         );
     """))
 
