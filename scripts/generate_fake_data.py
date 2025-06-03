@@ -89,7 +89,7 @@ with engine.begin() as conn:
 
     CREATE TABLE
         student (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             major text not null,
             dept_id int references department(id),
             first_name text not null,
@@ -100,18 +100,18 @@ with engine.begin() as conn:
 
     CREATE TABLE
         course (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             course_code text not null,
             name text not null,
             avg_workload int not null,
             avg_rating float not null,
-            department_id int references department(id),
+            department_id int references department(id)
 
         );
 
     CREATE TABLE
         review (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             course_id int not null references course(id),
             term text not null,
             difficulty text not null,
@@ -122,13 +122,13 @@ with engine.begin() as conn:
 
     CREATE TABLE
         tag (
-            id int generated always as identify not null PRIMARY KEY,
+            id int generated always as identity not null PRIMARY KEY,
             name text not null
         );
 
     CREATE TABLE
         review_tags (
-            review_id int not null references review(id)
+            review_id int not null references review(id),
             tag_id int not null references tag(id)
         );
 
