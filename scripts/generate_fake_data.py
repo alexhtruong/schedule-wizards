@@ -16,6 +16,7 @@ def database_connection_url():
 
 engine = sqlalchemy.create_engine(database_connection_url(), use_insertmanyvalues=True)
 fake = Faker()
+num_professors = 500
 
 departments = [
     ['Computer Science', 'CSC'],
@@ -72,12 +73,7 @@ with engine.begin() as conn:
         professor (
             id int generated always as identity not null PRIMARY KEY,
             name text not null,
-            avg_rating float not null,
-            classes_taught int,
-            department_id int not null references department(id),
-            total_reviews int not null,
-            avg_difficulty int not null,
-            avg_workload int not null
+            department_id int not null references department(id)
         );
 
     CREATE TABLE
@@ -96,8 +92,6 @@ with engine.begin() as conn:
             id int generated always as identity not null PRIMARY KEY,
             course_code text not null,
             name text not null,
-            avg_workload int not null,
-            avg_rating float not null,
             department_id int references department(id)
 
         );
@@ -155,6 +149,7 @@ with engine.begin() as conn:
         SELECT id FROM school WHERE name = :name
     """), {"name": "California Polytechnic University"}).scalar_one()
 
+    # Insert departments
     for department in departments:
         conn.execute(sqlalchemy.text("""
             INSERT INTO department (name, abbrev, school_id)
@@ -163,4 +158,17 @@ with engine.begin() as conn:
             "name": department[0],
             "abbrev": department[1],
             "school_id": school_id
+        })
+
+    department_ids = conn.execute(sqlalchemy.text("""
+        SELECT id FROM department
+    """)).scalars().all()
+
+    for professor in range(num_professors):
+        conn.execute(sqlalchemy.text("""
+            INSERT INTO professor (name, department_id)
+            VALUES (:name, :department_id);
+        """), {
+            "name": fake.name(),
+            "department_id": np.random.choice(department_ids)
         })
