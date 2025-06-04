@@ -40,6 +40,7 @@ async def list_courses(
     LEFT JOIN course c ON dc.course_id = c.id
     LEFT JOIN professors_courses pc ON c.id = pc.course_id
     LEFT JOIN professor p ON pc.professor_id = p.id
+    WHERE 1=1
     """
     params = {}
     
