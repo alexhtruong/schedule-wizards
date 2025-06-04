@@ -129,6 +129,7 @@ async def get_professor_details(professor_id: int) -> ProfessorDetails:
             if review_id not in review_map:
                 course = {
                     "course_id": int(row.course_id),
+                    "course_code": row.course_code,
                     "name": row.course_name,
                     "department": row.department,
                 }
