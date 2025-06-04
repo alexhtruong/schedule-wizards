@@ -104,7 +104,8 @@ async def get_professor_details(professor_id: int) -> ProfessorDetails:
         
         courses = [
             {
-                "course_id": int(row.course_id),  
+                "course_id": int(row.course_id), 
+                "course_code": row.course_code,
                 "name": row.course_name,
                 "department": row.department,
             } for row in courses_result
