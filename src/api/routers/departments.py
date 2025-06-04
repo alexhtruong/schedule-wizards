@@ -110,9 +110,9 @@ async def get_department_statistics(department_abbrev: str):
                         COUNT(DISTINCT c.id) as total_courses,
                         COUNT(DISTINCT p.id) as total_professors,
                         COUNT(DISTINCT r.id) as total_reviews,
-                        ROUND(AVG(r.difficulty)::numeric, 1) as avg_difficulty,
-                        ROUND(AVG(r.workload_rating)::numeric, 1) as avg_workload,
-                        ROUND(AVG(r.overall_rating)::numeric, 1) as avg_rating
+                        ROUND(AVG(r.difficulty), 1) as avg_difficulty,
+                        ROUND(AVG(r.workload_rating), 1) as avg_workload,
+                        ROUND(AVG(r.overall_rating), 1) as avg_rating
                     FROM department d
                     LEFT JOIN department_courses dc ON d.id = dc.department_id
                     LEFT JOIN course c ON dc.course_id = c.id
